@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "Tides"
+version = "0.1.0"
+authors = [
+  { name="Zachary Katz", email="zachary_katz@mines.edu" },
+]
+description = "Tides using PyTMD"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+
+dependencies = [
+  "numpy",
+  "pyTMD",
+  "xarray",
+  "timescale"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "coverage"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# Ruff Linter
+[tool.ruff]
+src = ["src"]
+extend-include = ["*.ipynb"]
+
+# Use Numpy-style docstrings.
+#[tool.ruff.lint]
+#select = ["D"]
+#[tool.ruff.lint.pydocstyle]
+#convention = "numpy"
+
+#Pytest options
+[tool.pytest.ini_options]
+#addopts = "--cov --cov-report term-missing"
