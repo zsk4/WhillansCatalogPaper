@@ -111,6 +111,9 @@ class Tide:
             )
             tide_holder = np.atleast_2d(tide_holder).T
 
+        print(tide_holder)
+        print(datetimes)
+        print(lats, lons)
         # Put in xarray
         obj_arr = [LatLon(lat, lon) for lat, lon in zip(lats, lons)]
         tides = xr.DataArray(
