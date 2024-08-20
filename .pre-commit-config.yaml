@@ -3,6 +3,7 @@ repos:
     rev: "v4.6.0"
     hooks:
       - id: check-added-large-files
+        args: ['--maxkb=1500']
       - id: check-case-conflict
       - id: check-yaml
       - id: end-of-file-fixer
@@ -25,6 +26,7 @@ repos:
     rev: "v1.11.0"
     hooks:
       - id: mypy
-        additional_dependencies: [numpy, pytmd, xarray]
+        additional_dependencies: [numpy, pytmd, xarray, pandas, pandas-stubs]
         files: src
-        args: []
+        #args: [--strict, --ignore-missing-imports]
+        

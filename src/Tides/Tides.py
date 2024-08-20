@@ -1,6 +1,10 @@
 """
 Antarctic Tidal Calculations using CATS2008 [1,2].
 
+Zachary Katz
+zachary_katz@mines.edu
+August 2024
+
 Functions
 ---------
 tidal_elevation
