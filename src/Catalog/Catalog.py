@@ -112,9 +112,6 @@ class Datastream:
 
         data = pd.DataFrame()
         for year in years:
-            print(self.sta)
-            print(type(self.sta))
-            print(os.fspath(self.sta))
             for folder in os.scandir(os.fspath(self.sta)):
                 # Folder is an os.DirEntry object
                 if folder.is_dir():
