@@ -22,6 +22,7 @@ dependencies = [
   "pyTMD",
   "xarray",
   "timescale"
+  "matplotlib"
 ]
 
 [project.optional-dependencies]
