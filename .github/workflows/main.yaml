@@ -17,14 +17,14 @@ jobs:
         allow_failure: [false]
 
     steps:
+    
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
       with:
         python-version: '3.11' 
     - run: pip install .[test]
     - run: coverage run -m pytest -m "not slow"
+    - run: coverage report --show-missing
       # Actions are github's predefined task
       # View on https://github.com/marketplace/actions/checkout
       # @vX uses version X of the action
-  
-  
