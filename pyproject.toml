@@ -10,14 +10,15 @@ authors = [
 ]
 description = "Tides using PyTMD"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
 ]
 
 dependencies = [
-  "numpy >= 2.0",
+  "pandas"
+  "numpy",
   "pyTMD",
   "xarray",
   "timescale"
@@ -25,12 +26,9 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "pytest >= 8.3.2",
-    "coverage >= 7.6.1"
+    "pytest",
+    "coverage"
 ]
-
-[tool.hatch.envs.default]
-python="3.11"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
