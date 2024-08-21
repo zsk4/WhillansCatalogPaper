@@ -39,7 +39,8 @@ import os
 import pandas as pd
 import numpy as np
 import datetime
-from typing import Tuple
+from typing import Tuple, Self
+import warnings
 
 
 def ll2xy(lon, lat):
@@ -172,7 +173,7 @@ class Datastream:
             data["time"] = pd.to_datetime(d["YEAR-MM-DD"] + "T" + d["HR:MN:SS.SS"])
             data["day_of_year"] = d["DAYofYEAR"]
 
-        # If not in 2024 fomat, may be in an older format, tested for below...
+        # If not in 2024 format, may be in an older format, tested for below...
         except Exception as e:
             try:
                 print(e)
@@ -237,8 +238,98 @@ class Datastream:
 
         return data, flip
 
-    """
-        # self.starts = starts
-        # self.ends = ends
-        # self.gaps = gaps
-    """
+    def interpolate(
+        self,
+        prior_date: pd.Timestamp,
+        date: pd.Timestamp,
+        gap: pd.Timedelta,
+        i: int,
+        interpolate_elements: int,
+    ) -> pd.DataFrame:
+        """
+        Interpolate the given data gap using Pandas' linear interpolation scheme.
+
+        Input Parametrers
+            data - PandasDataframe with time gaps [DataFrame]
+            prior_data - last time entry before data gap [Datetime]
+            date - first time entry after data gap [Datetime]
+            gap - length of gap in seconds [Timedelta]
+            i - DataFrame row index of first entry after data gap [integer]
+            interpolate_elements - number of elements needed to be interpolated [integer]
+
+        Returns
+            data - interpolated DataFrame [DataFrame]
+        """
+        data = self.data
+        # Loop over each missing row
+        for row in range(interpolate_elements - 1):
+            # Make data frame row
+            insert = pd.DataFrame(columns=data.columns, index=[i + row])
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                data = pd.concat(
+                    [data.iloc[: i + row], insert, data.iloc[i + row :]]
+                ).reset_index(drop=True)
+        data = data.interpolate(method="linear")  # Built-in pandas function
+        return data
+
+    def findgaps(self, gap_len: int, interpolate_time: int) -> Self:
+        """
+        Finds gaps in a dataframe loaded with datastream. Returns interpolated data
+        and two arrays corresponding to the start entry and the length of the gap
+
+        Input Paramerers
+            data - DataFrame with or without gaps to interpolate [DataFrame]
+            gap_len - the length of time of the base data
+        Returns
+            data - DataFrame that has been interpolated [DataFrame]
+            starts - list of start times of uninterpolated data gaps (because they
+                    were too long to interpolate) [Array of Datetimes]
+            ends - list of end times of uninterpolated data gaps (because they
+                    were too long to interpolate) [Array of Datetimes]
+            gaps - list of lengths in seconds of uninterpolated data gaps (because
+                    they were too long to interpolate) [Array of Timedeltas]
+        """
+
+        starts = []  # First Data point after gap
+        ends = []  # Last data point before gap
+        gaps = []  # Length of data [Start time - End time]
+
+        data = self.data
+        # Time (in seconds, inclusive) to allow interpolation before shutting off
+        starts.append(data["time"].iloc[0])
+        for i in data.index:
+            # Check not first element
+            if i > 0:
+                prior_date = data["time"][i - 1]
+                date = data["time"][i]
+
+                # Check if time between dates is not less than 16 seconds
+                # Choose 16 to catch weird 15 second gaps like 15.00003
+                gaptime = gap_len + 1
+                if date - prior_date > datetime.timedelta(seconds=gaptime):
+                    gap = date - prior_date
+                    # print(date,prior_date, i, gap)
+
+                    # If gap interpolatable, call interpolate and add to df else
+                    # note gap start, end, and length then continue.
+                    if gap <= datetime.timedelta(seconds=interpolate_time):
+                        # Find number of elements needed to be interpolated, using
+                        # gap length // 15 seconds,
+                        interpolate_elements = int(gap.total_seconds() // gap_len)
+                        print(prior_date, date, gap, i)
+                        datax = self.interpolate(
+                            prior_date, date, gap, i, interpolate_elements
+                        )
+                    else:
+                        starts.append(date)
+                        ends.append(prior_date)
+                        gaps.append(gap)
+
+        ends.append(data["time"].iloc[-1])
+        self.data = datax
+        self.starts = starts
+        self.ends = ends
+        self.gaps = gaps
+
+        return self
