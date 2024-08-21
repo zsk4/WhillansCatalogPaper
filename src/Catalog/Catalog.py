@@ -39,8 +39,12 @@ import os
 import pandas as pd
 import numpy as np
 import datetime
-from typing import Tuple, Self
+from typing import Tuple, Self, Any
 import warnings
+import scipy
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from pathlib import Path
 
 
 def ll2xy(lon, lat):
@@ -90,6 +94,18 @@ class Datastream:
 
         data = self.make_data_stream(sta, years)
         self.data = data
+
+        # Filled in when interpolation is run
+        self.starts: list[datetime.datetime] = []
+        self.ends: list[datetime.datetime] = []
+        self.gaps: list[datetime.timedelta] = []
+
+        # Filled in when lls_detection is run
+        self.residuals = None
+        self.xs = None
+        self.ys = None
+        self.zs = None
+        self.times = None
 
     def make_data_stream(self, sta: os.DirEntry, years: list) -> pd.DataFrame:
         """
@@ -296,6 +312,7 @@ class Datastream:
         gaps = []  # Length of data [Start time - End time]
 
         data = self.data
+        _data = None
         # Time (in seconds, inclusive) to allow interpolation before shutting off
         starts.append(data["time"].iloc[0])
         for i in data.index:
@@ -318,7 +335,7 @@ class Datastream:
                         # gap length // 15 seconds,
                         interpolate_elements = int(gap.total_seconds() // gap_len)
                         print(prior_date, date, gap, i)
-                        datax = self.interpolate(
+                        _data = self.interpolate(
                             prior_date, date, gap, i, interpolate_elements
                         )
                     else:
@@ -327,9 +344,544 @@ class Datastream:
                         gaps.append(gap)
 
         ends.append(data["time"].iloc[-1])
-        self.data = datax
+        if _data is not None:
+            self.data = _data
         self.starts = starts
         self.ends = ends
         self.gaps = gaps
 
         return self
+
+
+class Picks:
+    """Picked Events for A Set of Data Streams"""
+
+    def __init__(self, stas: list) -> None:
+        """Initialize a set of data streams to pick events from
+
+        Parameters
+        ----------
+        stas: list of Datastream objects
+            List of data streams to pick events from
+        """
+        self.stas = stas
+
+    def lls_detection(self, increment: int, slide: int) -> None:
+        """Linear least squares resiudal detection of stick slip events
+
+        Parameters
+        ----------
+        increment: int
+            Data points to perform the regression on
+        slide: int
+            Data points to slide the window each cyclewith pytest.raises(Exception) as e_info:
+        """
+        # Perform using actual times rather than number of data points to accommodate la02's 30 second increments
+
+        # Look for a more scientific way to choose variables increment and slide
+        # besides what gives the best event detections.
+
+        if increment % slide != 0:
+            raise Exception("Increment / Slide not an Integer")
+
+        # Loop for each station z
+        for z, sta in enumerate(self.stas[:]):
+            name = sta.name
+            print(name)
+            times = []
+            xs = []
+            ys = []
+            zs = []
+            residuals = []
+
+            # Loop over each start and end time
+            for st, en in zip(sta.starts, sta.ends):
+                # Get index of data at start and end times
+                start = sta.data.loc[sta.data["time"] == st].index[0]
+                end = sta.data.loc[sta.data["time"] == en].index[0]
+                length = end - start
+                if length != 0:
+                    # Mark current start and end for averaging
+                    start_pos = 0
+                    end_pos = start_pos + increment
+                    first_entry = sta.data.iloc[start].name
+
+                    time_arr = sta.data["time"][start:end].reset_index(drop=True)
+                    x_arr = sta.data["x"][start:end].reset_index(drop=True)
+                    y_arr = sta.data["y"][start:end].reset_index(drop=True)
+                    z_arr = sta.data["elevation"][start:end].reset_index(drop=True)
+                    xs.append(x_arr)
+                    ys.append(y_arr)
+                    zs.append(z_arr)
+                    times.append(time_arr)
+
+                    time_in_sec = np.zeros(length)
+                    for i in range(length):
+                        time_in_sec[i] = (
+                            sta.data["time"][first_entry + i]
+                            - datetime.datetime(2000, 1, 1)
+                        ).total_seconds()  # Get time from 2000
+
+                    # Find the linear least square average at each window
+                    averaging_pts = np.zeros(length // slide)
+                    for i in range((length // slide) - increment // slide):
+                        box = np.zeros(length)
+                        box[start_pos:end_pos] = 1
+                        func = np.multiply(sta.data["x"][start:end], box)  # Summation
+                        func = func[start_pos:end_pos]
+                        M = np.ones((len(func), 2))
+                        M[:, 1] = time_in_sec[start_pos:end_pos]
+                        p, res, rnk, s = scipy.linalg.lstsq(M, func)
+                        averaging_pts[i] = res
+                        start_pos += slide
+                        end_pos += slide
+
+                    # Create residual array by using average at each point
+                    residual_arr = np.zeros(length)
+                    start_pos = 0
+                    end_pos = start_pos + increment
+                    first_entry = sta.data.iloc[start].name
+
+                    num = increment // slide
+                    for i in range(length // slide):
+                        if i > increment // slide:
+                            avg = 0
+                            for j in range(i - num, i):
+                                avg = avg + averaging_pts[j]
+                            residual_arr[start_pos:end_pos] = avg / num
+                        start_pos += slide
+                        end_pos += slide
+                    residuals.append(residual_arr)
+
+            sta.residuals = residuals
+            sta.xs = xs
+            sta.ys = ys
+            sta.zs = zs
+            sta.times = times
+
+    def merge(self) -> pd.DataFrame:
+        """Make mega dataframe with all traces and Nan if station not operating
+
+        Parameters
+        ----------
+
+        Returns
+        merged: pd.DataFrame
+            Mega dataframe with all traces
+
+        """
+        # Make individual dataframes to merge and merge dataframes
+        for iter, sta in enumerate(self.stas):
+            # print(iter,sta.name)
+            flat_times = []
+            for xs in sta.times:
+                for x in xs:
+                    flat_times.append(x)
+            flat_xs = []
+            for xs in sta.xs:
+                for x in xs:
+                    flat_xs.append(x)
+            flat_res = []
+            for xs in sta.residuals:
+                for x in xs:
+                    flat_res.append(x)
+            flat_ys = []
+            for xs in sta.ys:
+                for x in xs:
+                    flat_ys.append(x)
+            df = pd.DataFrame(
+                {
+                    "time": flat_times,
+                    sta.name + "x": flat_xs,
+                    sta.name + "y": flat_ys,
+                    sta.name + "res": flat_res,
+                }
+            )
+            if iter == 0:
+                merged = df
+            if iter >= 1:
+                merged = merged.merge(df, how="outer", on="time")
+
+        merged = merged.sort_values(by="time", ignore_index=True)
+        return merged
+
+    def on_off_list(self) -> pd.DataFrame:
+        """Get sorted list of onsets and offsets
+
+        Parameters
+        ----------
+        Returns
+        sorted_list: pd.DataFrame
+            Sorted list of onsets and offsets
+
+        """
+        # Get sorted list of onsets and offsets
+        start_end = pd.DataFrame(columns=["times", "onset", "station"])
+
+        for sta in self.stas:
+            for time_arr in sta.times:
+                start_end.loc[len(start_end)] = [time_arr[0], True, sta.name]
+                start_end.loc[len(start_end)] = [
+                    time_arr[len(time_arr) - 1],
+                    False,
+                    sta.name,
+                ]
+
+        sorted_list = start_end.sort_values(
+            by=["times", "onset"], ascending=[True, False]
+        ).reset_index(drop=True)
+
+        return sorted_list
+
+    def no_data_csv(self, sorted: pd.DataFrame) -> None:
+        """Export csv with times of no data
+
+        Parameters
+        ----------
+        sorted: pd.DataFrame
+            Sorted list of onsets and offsets made by on_off_list
+
+        """
+        on_stas = 0
+        prior_on_stas = 0
+        start_no_data = []
+        end_no_data = []
+        for i, row in enumerate(sorted.iterrows()):
+            if row[1]["onset"] is True:
+                on_stas += 1
+            if row[1]["onset"] is False:
+                on_stas -= 1
+            if i > 1:
+                if prior_on_stas == 2 and on_stas == 1:
+                    start_no_data.append(row[1]["times"])
+                if prior_on_stas == 1 and on_stas == 2:
+                    end_no_data.append(row[1]["times"])
+            prior_on_stas = on_stas
+
+        start_no_data = start_no_data[:-1]
+        df_no_data = pd.DataFrame({"start": start_no_data, "end": end_no_data})
+
+        st_year = self.stas[0].years[0]
+        end_year = self.stas[0].years[-1]
+        df_no_data.to_csv(f"{st_year}-{end_year}no_data.txt", index=False, sep="\t")
+
+    @staticmethod
+    def on_off_indices(merged: pd.DataFrame, sorted: pd.DataFrame) -> list:
+        """Get a of indices of when stations turn on/off
+
+        Parameters
+        ----------
+        merged: pd.DataFrame
+            Mega dataframe with all traces
+        sorted: pd.DataFrame
+            Sorted list of onsets and offsets made by on_off_list
+
+        Returns
+        indices: list
+            List of indices of when stations turn on/off
+
+        """
+        indices = []
+        for time in sorted["times"]:
+            index = merged.index[merged["time"] == time][0]
+            indices.append(index)
+        return indices
+
+    @staticmethod
+    def pick_events(
+        merged: pd.DataFrame, sorted: pd.DataFrame, active_stas: int
+    ) -> Tuple[pd.DataFrame, float]:
+        """Get a of indices of when stations turn on/off
+
+        Parameters
+        ----------
+        merged: pd.DataFrame
+            Mega dataframe with all traces
+        sorted: pd.DataFrame
+            Sorted list of onsets and offsets made by on_off_list
+        active_stas: int
+            Minimum required number of active stations to consider an event
+
+        Returns
+        merged:  pd.DataFrame
+            Updated version of merged to include events and summed resiudals
+        thresh: float
+            Threshold value of summed residual for event detection
+        """
+
+        # For 2007-2009 I used thresh = avg + 0.5 * std
+        # and checked to ensure both traces were active.
+        # For 2010-2019 I used thresh = avg
+
+        # Find combined least square residual for each time block O(10 min)
+        res_cols = [col for col in merged if str(col).endswith("res")]
+        x_cols = [col for col in merged if str(col).endswith("x")]
+
+        merged["ressum"] = merged[res_cols].sum(axis=1)
+        # Use the peaks and an average thresholding algortihm to pick out the events.
+        avg = np.average(merged["ressum"])
+        std = np.std(merged["ressum"])
+        print(avg, std)
+
+        event = np.zeros(len(merged["ressum"]))
+        thresh = avg  # Threshold choice here e.g, avg + std
+        x_col_check = active_stas - 1  # Indexed at 0 so subtract 1
+        for i in range(len(event)):
+            nansum = 0
+            for col in x_cols:
+                nan_check = merged[col][i]
+                if np.isnan(nan_check):
+                    nansum += 1
+            if (
+                merged["ressum"][i] > thresh and nansum < len(x_cols) - x_col_check
+            ):  # Check at least two non-nan cols
+                event[i] = 1
+        merged["event"] = event
+
+        return merged, thresh
+
+    @staticmethod
+    def plot_picking(
+        merged: pd.DataFrame,
+        indices: list,
+        thresh: float,
+        num_plots: int,
+    ) -> None:
+        """Plot events until the nth gap.
+
+        Parameters
+        ----------
+        merged : pd.DataFrame
+            Mega dataframe with all traces
+        indices : list
+            List of indices of when stations turn on/off
+        num_plots : int
+            Number of plots to make
+        thresh : float
+            Threshold value of summed residual for event detection
+        """
+
+        x_cols = [col for col in merged if str(col).endswith("x")]
+        for i, index in enumerate(indices[:num_plots]):
+            if i > 0:
+                if indices[i - 1] != indices[i]:
+                    start = indices[i - 1]
+                    end = index
+
+                    fig, ax1 = plt.subplots(figsize=(14, 8))
+                    colors = [
+                        "#1f77b4",
+                        "#ff7f0e",
+                        "#2ca02c",
+                        "#d62728",
+                        "#9467bd",
+                        "#8c564b",
+                        "#e377c2",
+                        "#7f7f7f",
+                        "#7f7f7f",
+                        "#17becf",
+                        "#1f77b4",
+                        "#ff7f0e",
+                        "#2ca02c",
+                        "#d62728",
+                        "#9467bd",
+                        "#8c564b",
+                        "#e377c2",
+                        "#7f7f7f",
+                        "#bcbd22",
+                        "#17becf",
+                        "#1f77b4",
+                        "#ff7f0e",
+                        "#2ca02c",
+                        "#d62728",
+                        "#9467bd",
+                        "#8c564b",
+                        "#e377c2",
+                        "#7f7f7f",
+                        "#bcbd22",
+                        "#17becf",
+                    ]
+                    colors = [
+                        "dimgray",
+                        "gray",
+                        "darkgray",
+                        "silver",
+                        "lightgray",
+                        "gainsboro",
+                        "dimgray",
+                        "gray",
+                        "darkgray",
+                        "silver",
+                        "lightgray",
+                        "gainsboro",
+                        "dimgray",
+                        "gray",
+                        "darkgray",
+                        "silver",
+                        "lightgray",
+                        "gainsboro",
+                        "dimgray",
+                        "gray",
+                        "darkgray",
+                        "silver",
+                        "lightgray",
+                        "gainsboro",
+                        "dimgray",
+                        "gray",
+                        "darkgray",
+                        "silver",
+                        "lightgray",
+                        "gainsboro",
+                        "dimgray",
+                        "gray",
+                        "darkgray",
+                        "silver",
+                        "lightgray",
+                        "gainsboro",
+                    ]
+                    for j, x_col in enumerate(x_cols):
+                        # print(i)
+                        ax1.plot(
+                            merged["time"][start:end],
+                            merged[x_col][start:end]
+                            - np.mean(merged[x_col][start:end])
+                            - np.ones_like(merged[x_col][start:end])
+                            * (
+                                merged[x_col][start] - np.mean(merged[x_col][start:end])
+                            ),
+                            color=colors[j],
+                        )
+                    ax1.set_ylabel("Station $\Delta$X [meters]", size=20, color="gray")
+                    ax1.set_xlabel("Date", size=20)
+                    ax2 = ax1.twinx()
+                    rd = (160 / 255, 56 / 255, 32 / 255)
+                    ax2.plot(
+                        merged["time"][start:end], merged["ressum"][start:end], color=rd
+                    )
+                    ltred = (237 / 255, 179 / 255, 165 / 255)
+                    ax2.plot(
+                        merged["time"][start:end],
+                        np.ones_like(merged["ressum"][start:end]) * thresh,
+                        color=ltred,
+                    )
+                    ax2.set_ylabel(
+                        "Least Squares Residual [Sliding Window]", size=20, color=rd
+                    )
+                    ax3 = ax1.twinx()
+                    ax3.set_axis_off()
+                    masked: np.typing.NDArray[Any] = np.ma.masked_array(
+                        merged["event"][start:end],
+                        mask=(1 - merged["event"][start:end]),
+                    )
+                    ax3.plot(
+                        merged["time"][start:end], masked, color="#0047AB", linewidth=5
+                    )
+                    ax3.plot(
+                        merged["time"][start:end],
+                        np.zeros_like(merged["time"][start:end]),
+                        alpha=0,
+                    )
+                    ax1.tick_params(axis="y", labelsize=15, labelcolor="gray")
+                    ax2.tick_params(axis="y", labelsize=15, labelcolor="#0047AB")
+                    ax1.tick_params(axis="x", labelsize=15)
+                    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+                    ax1.xaxis.set_major_locator(mdates.MonthLocator())
+
+    @staticmethod
+    def make_catalog(merged: pd.DataFrame, cull_time: int) -> list:
+        """Make the event catalog and cull to events longer than x min
+
+        Parameters
+        ----------
+        merged : pd.DataFrame
+            Mega dataframe with all traces
+        cull_time : int
+            Cull events less than cull_time minutes long
+        """
+
+        start_indices = []
+        end_indices = []
+        for i, event in enumerate(merged["event"]):
+            if i >= 1:
+                prior_i = merged["event"][i - 1]
+                if prior_i < event:
+                    start_indices.append(i)
+                elif prior_i > event:
+                    end_indices.append(i)
+
+        catalog = np.empty(len(start_indices), dtype="object_")
+
+        x = 0
+        for s, e in zip(start_indices, end_indices):
+            catalog[x] = merged.iloc[s:e]
+            x += 1
+
+        # Initial cull of catalog by removing all false events less than 30 min
+        rev_catalog = []
+        for event in catalog:
+            start = event.iloc[0]["time"]
+            end = event.iloc[-1]["time"]
+            if end - start > datetime.timedelta(minutes=cull_time):
+                rev_catalog.append(event)
+
+        return rev_catalog
+
+    @staticmethod
+    def save_catalog(rev_catalog: list, dir_save: str) -> None:
+        """Save rev_catalog data frames as txt files
+
+        Parameters
+        ----------
+        rev_catalog : list
+            List of dataframes to save
+        dir_save : str
+            Directory to save to
+        """
+        for event in rev_catalog:
+            timestamp = event["time"].iloc[0]
+            datestring = "_".join(str(timestamp).split())
+            datestring = datestring.replace(":", "-")
+            output_dir = Path(dir_save)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            event.to_csv(f"{dir_save}/{datestring}.txt", sep="\t")
+
+
+def plot_event(event_to_plot: pd.DataFrame) -> None:
+    """
+    Plot a single event from the catalog
+
+    event_to_plot: Catalog Number of Event To Plot
+    """
+
+    # res_cols = [col for col in merged if col.endswith('res')]
+    x_cols = [col for col in event_to_plot if str(col).endswith("x")]
+    fig, ax1 = plt.subplots()
+    first = True
+    for i, x_col in enumerate(x_cols):
+        demeaned_to_0 = (event_to_plot[x_col] - np.mean(event_to_plot[x_col])) - (
+            event_to_plot[x_col][event_to_plot.index[0]] - np.mean(event_to_plot[x_col])
+        )
+        if not np.isnan(event_to_plot[x_col][event_to_plot.index[0]]):
+            if first:
+                ax2_dummy = demeaned_to_0
+                first = False
+            ax1.plot(event_to_plot["time"], demeaned_to_0, label=str(x_col)[:-1])
+    ax1.set_ylabel("X Displacement [meters]")
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    ax1.legend()
+
+    # Setup dates using second axis
+    ax2 = ax1.twiny()
+    ax2.xaxis.set_major_formatter(mdates.DateFormatter("%d %b %Y"))
+    fig.subplots_adjust(bottom=0.10)
+    ax2.set_frame_on(True)
+    ax2.patch.set_visible(False)
+    ax2.xaxis.set_ticks_position("bottom")
+    ax2.xaxis.set_label_position("bottom")
+    ax2.spines["bottom"].set_position(("outward", 20))
+    ax2.set_xlabel("DateTime")
+
+    # Need to plot something on ax2 to getthe correct dates
+    ax2.plot(event_to_plot["time"], ax2_dummy)
+    for label in ax2.xaxis.get_ticklabels()[::2]:
+        label.set_visible(False)
