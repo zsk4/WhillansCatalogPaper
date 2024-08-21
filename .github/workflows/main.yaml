@@ -26,5 +26,4 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - run: pip install .[test]
     - run: coverage run -m pytest -m "not slow"
-    - name: Coverage Report
     - run: coverage report --show-missing
