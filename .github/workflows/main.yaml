@@ -22,12 +22,9 @@ jobs:
       # @vX uses version X of the action
     - name : Checkout code
       uses : actions/checkout@v2
-      
-    #- name : Install Dependencies
-    #  run : pip install numpy
 
     - name : Install Dependencies
-      run : pip install .[test]
+      run : pip install .[test] --python python${{ matrix.python-version }} 
 
     - name: Test package
       run: coverage run -m pytest -m "not slow"
