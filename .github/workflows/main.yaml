@@ -20,10 +20,12 @@ jobs:
       # Actions are github's predefined task
       # View on https://github.com/marketplace/actions/checkout
       # @vX uses version X of the action
-    - name : Checkout code
-      uses : actions/checkout@v2
-
-    - name : Install Dependencies
+    - name : Checkout code and install dependencies
+    - uses : actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
       run : pip install .[test]
 
     - name: Test package
