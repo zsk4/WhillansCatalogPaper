@@ -29,6 +29,9 @@ test = [
     "coverage"
 ]
 
+[tool.hatch.envs.default]
+python="3.11"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
