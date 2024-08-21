@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "Whillans Catalog Paper"
+name = "WhillansCatalogPaper"
 version = "0.1.0"
 authors = [
   { name="Zachary Katz", email="zachary_katz@mines.edu" },
