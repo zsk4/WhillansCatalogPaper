@@ -8,11 +8,17 @@ August 2024
 
 """
 
-import Catalog.Catalog as Catalog  # In same folder as this file so no src.Catalog needed
+from . import Catalog  # In same folder as this file so no src.Catalog needed
 
 
 def full_catalog_run(
-    data: list, years: list, window: int, slide: int, active_stas: int, cull_time: int
+    data: list,
+    years: list,
+    window: int,
+    slide: int,
+    active_stas: int,
+    cull_time: int,
+    plot: bool,
 ) -> list:
     """Wrapper function that goes from a list of Datastreams to a list of events
 
@@ -30,6 +36,8 @@ def full_catalog_run(
         Min time of catalog event
     years : list
         Years data corresponds to
+    plot : bool
+        Whether to plot the catalog events
 
     Returns
     -------
@@ -39,16 +47,18 @@ def full_catalog_run(
 
     picks = Catalog.Picks(data)
     picks.lls_detection(window, slide)
-    merged = picks.merge()
+    merged_df = picks.merge()
     sorted_list = picks.on_off_list()
     picks.no_data_csv(sorted_list)
-    indices = picks.on_off_indices(merged, sorted_list)
 
-    merged, threshold = picks.pick_events(merged, sorted_list, active_stas=2)
-    picks.plot_picking(merged, indices, threshold, num_plots=4)
+    merged = Catalog.Events(merged_df)
+    threshold = merged.pick_events(sorted_list, active_stas=2)
+    if plot:
+        indices = merged.on_off_indices(sorted_list)
+        merged.plot_picking(indices, threshold, num_plots=25)
+    catalog = merged.make_catalog(cull_time=30)
 
-    catalog = picks.make_catalog(merged, cull_time=30)
     save_dir = f"./{years[0]}_{years[-1]}Events"
-    picks.save_catalog(catalog, save_dir)
+    Catalog.save_catalog(catalog, save_dir)
 
     return catalog

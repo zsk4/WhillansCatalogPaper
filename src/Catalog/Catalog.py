@@ -45,6 +45,9 @@ import scipy
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def ll2xy(lon, lat):
@@ -192,7 +195,7 @@ class Datastream:
         # If not in 2024 format, may be in an older format, tested for below...
         except Exception as e:
             try:
-                print(e)
+                logger.warning(f"Position file not from 2024 CSRS-PPP run: {e}")
                 d = pd.read_csv(file, skiprows=7, sep="\\s+")
                 data["longitude"] = (
                     d["LON(d)"] - d["LON(m)"] / 60 - d["LON(s)"] / 60 / 60
@@ -204,7 +207,7 @@ class Datastream:
                 data["day_of_year"] = d["DOY"]
             except Exception as e:
                 try:
-                    print(e)
+                    logger.warning(f"Position file not from 2024 CSRS-PPP run: {e}")
                     d = pd.read_csv(file, skiprows=5, sep="\\s+")
                     data["longitude"] = (
                         d["LONDD"] - d["LONMN"] / 60 - d["LONSS"] / 60 / 60
@@ -217,7 +220,7 @@ class Datastream:
                     )
                     data["day_of_year"] = d["DAYofYEAR"]
                 except Exception as e:
-                    print(e)
+                    logger.warning(f"Position file not from 2024 CSRS-PPP run: {e}")
                     d = pd.read_csv(file, skiprows=6, sep="\\s+")
                     data["longitude"] = (
                         d["LON(d)"] - d["LON(m)"] / 60 - d["LON(s)"] / 60 / 60
@@ -289,13 +292,12 @@ class Datastream:
         data = data.interpolate(method="linear")  # Built-in pandas function
         return data
 
-    def findgaps(self, gap_len: int, interpolate_time: int) -> Self:
+    def findgaps(self, gap_len: int) -> Self:
         """
         Finds gaps in a dataframe loaded with datastream. Returns interpolated data
         and two arrays corresponding to the start entry and the length of the gap
 
         Input Paramerers
-            data - DataFrame with or without gaps to interpolate [DataFrame]
             gap_len - the length of time of the base data
         Returns
             data - DataFrame that has been interpolated [DataFrame]
@@ -330,11 +332,11 @@ class Datastream:
 
                     # If gap interpolatable, call interpolate and add to df else
                     # note gap start, end, and length then continue.
-                    if gap <= datetime.timedelta(seconds=interpolate_time):
+                    if gap <= datetime.timedelta(seconds=self.interpolation_time):
                         # Find number of elements needed to be interpolated, using
                         # gap length // 15 seconds,
                         interpolate_elements = int(gap.total_seconds() // gap_len)
-                        print(prior_date, date, gap, i)
+                        logger.info(prior_date, date, gap, i)
                         _data = self.interpolate(
                             prior_date, date, gap, i, interpolate_elements
                         )
@@ -387,7 +389,7 @@ class Picks:
         # Loop for each station z
         for z, sta in enumerate(self.stas[:]):
             name = sta.name
-            print(name)
+            logger.info(f"Linear Least Squares on {name}")
             times = []
             xs = []
             ys = []
@@ -565,14 +567,25 @@ class Picks:
         end_year = self.stas[0].years[-1]
         df_no_data.to_csv(f"{st_year}-{end_year}no_data.txt", index=False, sep="\t")
 
-    @staticmethod
-    def on_off_indices(merged: pd.DataFrame, sorted: pd.DataFrame) -> list:
-        """Get a of indices of when stations turn on/off
+
+class Events:
+    """Catalog of Events"""
+
+    def __init__(self, merged: pd.DataFrame) -> None:
+        """Initialize a catalog of events
 
         Parameters
         ----------
         merged: pd.DataFrame
             Mega dataframe with all traces
+        """
+        self.merged = merged
+
+    def on_off_indices(self, sorted: pd.DataFrame) -> list:
+        """Get a of indices of when stations turn on/off
+
+        Parameters
+        ----------
         sorted: pd.DataFrame
             Sorted list of onsets and offsets made by on_off_list
 
@@ -583,28 +596,21 @@ class Picks:
         """
         indices = []
         for time in sorted["times"]:
-            index = merged.index[merged["time"] == time][0]
+            index = self.merged.index[self.merged["time"] == time][0]
             indices.append(index)
         return indices
 
-    @staticmethod
-    def pick_events(
-        merged: pd.DataFrame, sorted: pd.DataFrame, active_stas: int
-    ) -> Tuple[pd.DataFrame, float]:
-        """Get a of indices of when stations turn on/off
+    def pick_events(self, sorted: pd.DataFrame, active_stas: int) -> float:
+        """Get a of indices of when stations turn on/off. Updates Events in place
 
         Parameters
         ----------
-        merged: pd.DataFrame
-            Mega dataframe with all traces
         sorted: pd.DataFrame
             Sorted list of onsets and offsets made by on_off_list
         active_stas: int
             Minimum required number of active stations to consider an event
 
         Returns
-        merged:  pd.DataFrame
-            Updated version of merged to include events and summed resiudals
         thresh: float
             Threshold value of summed residual for event detection
         """
@@ -612,37 +618,36 @@ class Picks:
         # For 2007-2009 I used thresh = avg + 0.5 * std
         # and checked to ensure both traces were active.
         # For 2010-2019 I used thresh = avg
-
+        logger.info("Picking Events")
         # Find combined least square residual for each time block O(10 min)
-        res_cols = [col for col in merged if str(col).endswith("res")]
-        x_cols = [col for col in merged if str(col).endswith("x")]
+        res_cols = [col for col in self.merged if str(col).endswith("res")]
+        x_cols = [col for col in self.merged if str(col).endswith("x")]
 
-        merged["ressum"] = merged[res_cols].sum(axis=1)
+        self.merged["ressum"] = self.merged[res_cols].sum(axis=1)
         # Use the peaks and an average thresholding algortihm to pick out the events.
-        avg = np.average(merged["ressum"])
-        std = np.std(merged["ressum"])
-        print(avg, std)
+        avg = np.average(self.merged["ressum"])
+        std = np.std(self.merged["ressum"])
+        logger.info(f"Average: {avg}, Standard Deviation: {std}")
 
-        event = np.zeros(len(merged["ressum"]))
+        event = np.zeros(len(self.merged["ressum"]))
         thresh = avg  # Threshold choice here e.g, avg + std
         x_col_check = active_stas - 1  # Indexed at 0 so subtract 1
         for i in range(len(event)):
             nansum = 0
             for col in x_cols:
-                nan_check = merged[col][i]
+                nan_check = self.merged[col][i]
                 if np.isnan(nan_check):
                     nansum += 1
             if (
-                merged["ressum"][i] > thresh and nansum < len(x_cols) - x_col_check
+                self.merged["ressum"][i] > thresh and nansum < len(x_cols) - x_col_check
             ):  # Check at least two non-nan cols
                 event[i] = 1
-        merged["event"] = event
+        self.merged["event"] = event
 
-        return merged, thresh
+        return thresh
 
-    @staticmethod
     def plot_picking(
-        merged: pd.DataFrame,
+        self,
         indices: list,
         thresh: float,
         num_plots: int,
@@ -651,8 +656,6 @@ class Picks:
 
         Parameters
         ----------
-        merged : pd.DataFrame
-            Mega dataframe with all traces
         indices : list
             List of indices of when stations turn on/off
         num_plots : int
@@ -660,7 +663,7 @@ class Picks:
         thresh : float
             Threshold value of summed residual for event detection
         """
-
+        merged = self.merged
         x_cols = [col for col in merged if str(col).endswith("x")]
         for i, index in enumerate(indices[:num_plots]):
             if i > 0:
@@ -787,23 +790,20 @@ class Picks:
                     ax1.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
                     ax1.xaxis.set_major_locator(mdates.MonthLocator())
 
-    @staticmethod
-    def make_catalog(merged: pd.DataFrame, cull_time: int) -> list:
+    def make_catalog(self, cull_time: int) -> list:
         """Make the event catalog and cull to events longer than x min
 
         Parameters
         ----------
-        merged : pd.DataFrame
-            Mega dataframe with all traces
         cull_time : int
             Cull events less than cull_time minutes long
         """
 
         start_indices = []
         end_indices = []
-        for i, event in enumerate(merged["event"]):
+        for i, event in enumerate(self.merged["event"]):
             if i >= 1:
-                prior_i = merged["event"][i - 1]
+                prior_i = self.merged["event"][i - 1]
                 if prior_i < event:
                     start_indices.append(i)
                 elif prior_i > event:
@@ -813,7 +813,7 @@ class Picks:
 
         x = 0
         for s, e in zip(start_indices, end_indices):
-            catalog[x] = merged.iloc[s:e]
+            catalog[x] = self.merged.iloc[s:e]
             x += 1
 
         # Initial cull of catalog by removing all false events less than 30 min
@@ -826,24 +826,24 @@ class Picks:
 
         return rev_catalog
 
-    @staticmethod
-    def save_catalog(rev_catalog: list, dir_save: str) -> None:
-        """Save rev_catalog data frames as txt files
 
-        Parameters
-        ----------
-        rev_catalog : list
-            List of dataframes to save
-        dir_save : str
-            Directory to save to
-        """
-        for event in rev_catalog:
-            timestamp = event["time"].iloc[0]
-            datestring = "_".join(str(timestamp).split())
-            datestring = datestring.replace(":", "-")
-            output_dir = Path(dir_save)
-            output_dir.mkdir(parents=True, exist_ok=True)
-            event.to_csv(f"{dir_save}/{datestring}.txt", sep="\t")
+def save_catalog(rev_catalog: list, dir_save: str) -> None:
+    """Save rev_catalog data frames as txt files
+
+    Parameters
+    ----------
+    rev_catalog : list
+        List of dataframes to save
+    dir_save : str
+        Directory to save to
+    """
+    for event in rev_catalog:
+        timestamp = event["time"].iloc[0]
+        datestring = "_".join(str(timestamp).split())
+        datestring = datestring.replace(":", "-")
+        output_dir = Path(dir_save)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        event.to_csv(f"{dir_save}/{datestring}.evt", sep="\t")
 
 
 def plot_event(event_to_plot: pd.DataFrame) -> None:
@@ -885,3 +885,47 @@ def plot_event(event_to_plot: pd.DataFrame) -> None:
     ax2.plot(event_to_plot["time"], ax2_dummy)
     for label in ax2.xaxis.get_ticklabels()[::2]:
         label.set_visible(False)
+
+
+def set_interpolation_time(sta, years) -> Tuple[int, bool]:
+    """
+    Determine what time to interpolate based on data frequency for the station.
+    Default is 15 seconds, but there are some stations that have different frequencies.
+
+        # List of Stations with data not in 15 sec increments
+
+        # la02 | 2008 - 7 JAN 2014 (la020070) 30 sec
+        # slw1 | 2009 - 2010 02 sec Currently Ignored in processing
+        # la14 | 2017???? 30 sec
+        # la09 | 2010 - 5 FEB 2010 (la090310) 30 sec
+        # whl02,03,07,09,11 only in xyzt format and no rinex, currently not used
+
+    Parameters
+    ----------
+    sta: str
+        Station name
+    years: list of strings
+        Years to be run
+
+    Returns
+    interpolation_time: int
+        Interpolation time in seconds to be used for sta during years.
+    run: bool
+        Whether or not to run the station during the years.
+    """
+
+    interpolation_time = 15
+    run = True
+
+    if (
+        sta == "la02"
+        and ("2008" or "2009" or "2010" or "2011" or "2012" or "2013" or "2014")
+        in years
+    ):
+        interpolation_time = 30
+    elif sta == "slw1" and ("2009" or "2010") in years:
+        run = False
+    elif sta == "la09" and "2010" in years:
+        interpolation_time = 30
+
+    return interpolation_time, run
