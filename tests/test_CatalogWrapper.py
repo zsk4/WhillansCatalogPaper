@@ -14,7 +14,7 @@ def test_wrapper():
     cats = []
     for sta in stas:
         cat = Catalog.Datastream(os.path.join(dir, sta), sta, years, interpolation_time)
-        cat.findgaps(interpolation_time, max_gap_len)
+        cat.findgaps(max_gap_len)
         cats.append(cat)
 
     # Without plotting

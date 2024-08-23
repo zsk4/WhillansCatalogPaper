@@ -38,7 +38,7 @@ def test_interpolation():
 
     # Check interpolation
     cat = Catalog.Datastream(os.path.join(dir, sta), sta, years, interpolation_time)
-    int_cat = cat.findgaps(interpolation_time, max_gap_len)  # Interpolate Data
+    int_cat = cat.findgaps(max_gap_len)  # Interpolate Data
     assert int_cat.data["time"].iloc[-1] == pd.Timestamp("2011-01-01 23:59:45")
     assert int_cat.data["time"].iloc[-2] == pd.Timestamp("2011-01-01 23:54:15")
     assert int_cat.data["time"].iloc[-3] == pd.Timestamp("2011-01-01 23:54:00")
@@ -56,7 +56,7 @@ def test_pick_init():
     cats = []
     for sta in stas:
         cat = Catalog.Datastream(os.path.join(dir, sta), sta, years, interpolation_time)
-        cat.findgaps(interpolation_time, max_gap_len)
+        cat.findgaps(max_gap_len)
         cats.append(cat)
 
     picks = Catalog.Picks(cats)
@@ -73,7 +73,7 @@ def test_lls_detection():
     cats = []
     for sta in stas:
         cat = Catalog.Datastream(os.path.join(dir, sta), sta, years, interpolation_time)
-        cat.findgaps(interpolation_time, max_gap_len)
+        cat.findgaps(max_gap_len)
         cats.append(cat)
 
     picks = Catalog.Picks(cats)
