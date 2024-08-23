@@ -292,7 +292,7 @@ class Datastream:
         data = data.interpolate(method="linear")  # Built-in pandas function
         return data
 
-    def findgaps(self, gap_len: int) -> Self:
+    def findgaps(self, max_gap_len: int) -> Self:
         """
         Finds gaps in a dataframe loaded with datastream. Returns interpolated data
         and two arrays corresponding to the start entry and the length of the gap
@@ -322,21 +322,22 @@ class Datastream:
             if i > 0:
                 prior_date = data["time"][i - 1]
                 date = data["time"][i]
-
                 # Check if time between dates is not less than 16 seconds
                 # Choose 16 to catch weird 15 second gaps like 15.00003
-                gaptime = gap_len + 1
+                gaptime = self.interpolation_time + 1
                 if date - prior_date > datetime.timedelta(seconds=gaptime):
                     gap = date - prior_date
-                    # print(date,prior_date, i, gap)
 
                     # If gap interpolatable, call interpolate and add to df else
                     # note gap start, end, and length then continue.
-                    if gap <= datetime.timedelta(seconds=self.interpolation_time):
+                    if gap <= datetime.timedelta(seconds=max_gap_len):
                         # Find number of elements needed to be interpolated, using
                         # gap length // 15 seconds,
-                        interpolate_elements = int(gap.total_seconds() // gap_len)
+                        interpolate_elements = int(
+                            gap.total_seconds() // self.interpolation_time
+                        )
                         logger.info(prior_date, date, gap, i)
+                        print(prior_date, date, gap, i)
                         _data = self.interpolate(
                             prior_date, date, gap, i, interpolate_elements
                         )
