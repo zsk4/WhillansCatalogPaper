@@ -19,7 +19,14 @@ def test_wrapper():
 
     # Without plotting
     catalog = CatWrap.full_catalog_run(
-        cats, years, window=600, slide=25, active_stas=2, cull_time=30, plot=False
+        cats,
+        years,
+        window=600,
+        slide=25,
+        active_stas=2,
+        cull_time=30,
+        cull_dist=0.1,
+        plot=False,
     )
 
     assert len(catalog) == 5
@@ -28,7 +35,14 @@ def test_wrapper():
 
     # With plotting
     catalog = CatWrap.full_catalog_run(
-        cats, years, window=600, slide=25, active_stas=2, cull_time=30, plot=True
+        cats,
+        years,
+        window=600,
+        slide=25,
+        active_stas=2,
+        cull_time=30,
+        cull_dist=0.1,
+        plot=True,
     )
 
     assert len(catalog) == 5
