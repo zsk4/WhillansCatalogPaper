@@ -83,3 +83,123 @@ def test_lls_detection():
     assert str(e_info.value) == "Increment / Slide not an Integer"
 
     # picked = unpicked.lls_detection(600, 25)
+
+
+def test_no_data_csv():
+    dir = "./tests/ExamplePos"
+    stas = ["la01"]
+    years = ["2010", "2011"]
+    interpolation_time = 15
+    max_gap_len = 120
+
+    cats = []
+    for sta in stas:
+        cat = Catalog.Datastream(os.path.join(dir, sta), sta, years, interpolation_time)
+        cat.findgaps(max_gap_len)
+        cats.append(cat)
+
+    # Used only for years. Sorted is hand crafted
+    picks = Catalog.Picks(cats)
+
+    # Test no gaps
+    d = {
+        "times": [
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+        ],
+        "onset": [True, True, False, False],
+        "station": ["la02", "la01", "la02", "la01"],
+    }
+    sorted = pd.DataFrame(data=d)
+    df_no_data = picks.no_data_csv(sorted)
+    assert df_no_data.empty
+
+    # Test gap at start
+    d = {
+        "times": [
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-03-01 00:00:00"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+        ],
+        "onset": [True, True, False, False],
+        "station": ["la02", "la01", "la02", "la01"],
+    }
+    sorted = pd.DataFrame(data=d)
+    df_no_data = picks.no_data_csv(sorted)
+    assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-01-01 00:00:00")
+    assert df_no_data["end"].iloc[0] == pd.to_datetime("2010-03-01 00:00:00")
+
+    # Test gap at end
+    d = {
+        "times": [
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2011-10-23 12:50:15"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+        ],
+        "onset": [True, True, False, False],
+        "station": ["la02", "la01", "la02", "la01"],
+    }
+    sorted = pd.DataFrame(data=d)
+    df_no_data = picks.no_data_csv(sorted)
+    assert df_no_data["start"].iloc[0] == pd.to_datetime("2011-10-23 12:50:15")
+    assert df_no_data["end"].iloc[0] == pd.to_datetime("2011-12-31 23:59:45")
+
+    # Test gap at both ends
+    d = {
+        "times": [
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-03-01 00:00:00"),
+            pd.to_datetime("2011-10-23 12:50:15"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+        ],
+        "onset": [True, True, False, False],
+        "station": ["la02", "la01", "la02", "la01"],
+    }
+    sorted = pd.DataFrame(data=d)
+    df_no_data = picks.no_data_csv(sorted)
+    assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-01-01 00:00:00")
+    assert df_no_data["end"].iloc[0] == pd.to_datetime("2010-03-01 00:00:00")
+    assert df_no_data["start"].iloc[-1] == pd.to_datetime("2011-10-23 12:50:15")
+    assert df_no_data["end"].iloc[-1] == pd.to_datetime("2011-12-31 23:59:45")
+
+    # Test gap in middle
+    d = {
+        "times": [
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-05-01 00:00:00"),
+            pd.to_datetime("2011-03-01 00:00:00"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+        ],
+        "onset": [True, True, False, True, False, False],
+        "station": ["la02", "la01", "la01", "la01", "la02", "la01"],
+    }
+    sorted = pd.DataFrame(data=d)
+    df_no_data = picks.no_data_csv(sorted)
+    assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-05-01 00:00:00")
+    assert df_no_data["end"].iloc[0] == pd.to_datetime("2011-03-01 00:00:00")
+
+    # Test gap in middle and end
+    d = {
+        "times": [
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-01-01 00:00:00"),
+            pd.to_datetime("2010-05-01 00:00:00"),
+            pd.to_datetime("2011-03-01 00:00:00"),
+            pd.to_datetime("2011-10-23 12:50:15"),
+            pd.to_datetime("2011-12-31 23:59:45"),
+        ],
+        "onset": [True, True, False, True, False, False],
+        "station": ["la02", "la01", "la01", "la01", "la02", "la01"],
+    }
+    sorted = pd.DataFrame(data=d)
+    df_no_data = picks.no_data_csv(sorted)
+    assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-05-01 00:00:00")
+    assert df_no_data["end"].iloc[0] == pd.to_datetime("2011-03-01 00:00:00")
+    assert df_no_data["start"].iloc[-1] == pd.to_datetime("2011-10-23 12:50:15")
+    assert df_no_data["end"].iloc[-1] == pd.to_datetime("2011-12-31 23:59:45")

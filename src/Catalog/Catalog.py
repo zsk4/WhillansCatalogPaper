@@ -152,6 +152,9 @@ class Datastream:
         """
         Load processed gps data file into pandas table.
 
+        Assumes data in 00,15,30,45 second and removes all other data.
+        For slw1, 46 second data are moved to 45 seconds.
+        Note this will fail if Secondly data is provided (i.e. data at both 45 and 46 seconds)
         Parameters
         file - .pos precise point solution file, Natural Resources Canada [string]
 
@@ -186,10 +189,18 @@ class Datastream:
                 | d["HR:MN:SS.SS"].str.endswith("15.00")
                 | d["HR:MN:SS.SS"].str.endswith("30.00")
                 | d["HR:MN:SS.SS"].str.endswith("45.00")
+                | d["HR:MN:SS.SS"].str.endswith("16.00")  # Slw1 only, move to 15 sec
+                | d["HR:MN:SS.SS"].str.endswith("46.00")  # Slw1 only, move to 45 sec
             ]
             data["longitude"] = d["LONDD"] - d["LONMN"] / 60 - d["LONSS"] / 60 / 60
             data["latitude"] = d["LATDD"] - d["LATMN"] / 60 - d["LATSS"] / 60 / 60
             data["time"] = pd.to_datetime(d["YEAR-MM-DD"] + "T" + d["HR:MN:SS.SS"])
+            data.loc[data["time"].dt.second == 46, "time"] = data[
+                "time"
+            ] - pd.Timedelta(seconds=1)  # Slw1 only, move to 45 sec
+            data.loc[data["time"].dt.second == 16, "time"] = data[
+                "time"
+            ] - pd.Timedelta(seconds=1)  # Slw1 only, move to 15 sec
             data["day_of_year"] = d["DAYofYEAR"]
 
         # If not in 2024 format, may be in an older format, tested for below...
@@ -547,7 +558,7 @@ class Picks:
 
         return sorted_list
 
-    def no_data_csv(self, sorted: pd.DataFrame) -> None:
+    def no_data_csv(self, sorted: pd.DataFrame) -> pd.DataFrame:
         """Export csv with times of no data
 
         Parameters
@@ -555,6 +566,9 @@ class Picks:
         sorted: pd.DataFrame
             Sorted list of onsets and offsets made by on_off_list
 
+        Returns
+        df_no_data: pd.DataFrame
+            Dataframe of no data times
         """
         on_stas = 0
         prior_on_stas = 0
@@ -565,19 +579,32 @@ class Picks:
                 on_stas += 1
             if row[1]["onset"] is False:
                 on_stas -= 1
-            if i > 1:
+            if i >= 1:
                 if prior_on_stas == 2 and on_stas == 1:
                     start_no_data.append(row[1]["times"])
                 if prior_on_stas == 1 and on_stas == 2:
                     end_no_data.append(row[1]["times"])
             prior_on_stas = on_stas
 
-        start_no_data = start_no_data[:-1]
-        df_no_data = pd.DataFrame({"start": start_no_data, "end": end_no_data})
-
         st_year = self.stas[0].years[0]
         end_year = self.stas[0].years[-1]
+
+        # If no data starting at end of timeframe, remove
+        if start_no_data[-1] >= datetime.datetime(int(end_year), 12, 31, 23, 59, 00):
+            start_no_data.pop()
+        else:
+            end_no_data.append(pd.Timestamp(int(end_year), 12, 31, 23, 59, 45))
+
+        # If no data starting at start of timeframe, remove
+        if end_no_data[0] <= datetime.datetime(int(st_year), 1, 1, 00, 1, 00):
+            end_no_data.pop(0)
+        else:
+            start_no_data.insert(0, pd.Timestamp(int(st_year), 1, 1, 00, 00, 00))
+
+        df_no_data = pd.DataFrame({"start": start_no_data, "end": end_no_data})
+
         df_no_data.to_csv(f"{st_year}-{end_year}no_data.txt", index=False, sep="\t")
+        return df_no_data
 
 
 class Events:
@@ -802,13 +829,20 @@ class Events:
                     ax1.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
                     ax1.xaxis.set_major_locator(mdates.MonthLocator())
 
-    def make_catalog(self, cull_time: int) -> list:
+    def make_catalog(self, cull_time: int, cull_dist: float) -> list:
         """Make the event catalog and cull to events longer than x min
 
         Parameters
         ----------
         cull_time : int
             Cull events less than cull_time minutes long
+        cull_dist : float
+            Cull events with min delta_x < cull_dist [meters]
+
+        Returns
+        -------
+        rev_catalog : list
+            Catalog events (dataframes) that survived the culling
         """
 
         start_indices = []
@@ -828,14 +862,33 @@ class Events:
             catalog[x] = self.merged.iloc[s:e]
             x += 1
 
-        # Initial cull of catalog by removing all false events less than 30 min
-        rev_catalog = []
+        # Initial cull of catalog by removing all false events less than cull_time
+        cull_time_catalog = []
         for event in catalog:
             start = event.iloc[0]["time"]
             end = event.iloc[-1]["time"]
             if end - start > datetime.timedelta(minutes=cull_time):
-                rev_catalog.append(event)
+                cull_time_catalog.append(event)
 
+        # Second cull of catalog removing all events with min delta_x < cull_dist
+        cull_dist_catalog = []
+        for event in cull_time_catalog:
+            x_cols = [col for col in catalog[0] if str(col).endswith("x")]
+            end_avg = 0.0
+            for x_col in x_cols:
+                if not np.isnan(event[x_col].iloc[-1]):
+                    # Demean to 0 at start
+                    end_val = (
+                        event[x_col].iloc[-1]
+                        - np.mean(event[x_col])
+                        - (event[x_col].iloc[0] - np.mean(event[x_col]))
+                    )
+                    end_avg += end_val
+            end_avg = end_avg / len(x_cols)
+            if end_avg > cull_dist:
+                cull_dist_catalog.append(event)
+
+        rev_catalog = cull_dist_catalog
         return rev_catalog
 
 
@@ -930,11 +983,15 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
     run = True
 
     if sta == "la02" and (
-        "2008" or "2009" or "2010" or "2011" or "2012" or "2013" or "2014" in years
+        "2008"
+        or "2009"
+        or "2010"
+        or "2011"
+        or "2012"
+        or "2013"
+        or "2014_30Sec" in years
     ):
         interpolation_time = 30
-    elif sta == "slw1" and ("2009" or "2010" in years):
-        run = False
     elif sta == "la09" and ("2010" in years):
         interpolation_time = 30
 

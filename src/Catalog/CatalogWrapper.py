@@ -18,6 +18,7 @@ def full_catalog_run(
     slide: int,
     active_stas: int,
     cull_time: int,
+    cull_dist: float,
     plot: bool,
 ) -> list:
     """Wrapper function that goes from a list of Datastreams to a list of events
@@ -34,6 +35,8 @@ def full_catalog_run(
         Min number of active stations for event detection
     cull_time : int
         Min time of catalog event
+    cull_dist : float
+        Min avg distance of catalog event
     years : list
         Years data corresponds to
     plot : bool
@@ -56,7 +59,7 @@ def full_catalog_run(
     if plot:
         indices = merged.on_off_indices(sorted_list)
         merged.plot_picking(indices, threshold, num_plots=25)
-    catalog = merged.make_catalog(cull_time=30)
+    catalog = merged.make_catalog(cull_time=30, cull_dist=0.1)
 
     save_dir = f"./{years[0]}_{years[-1]}Events"
     Catalog.save_catalog(catalog, save_dir)
