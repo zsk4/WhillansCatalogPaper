@@ -294,10 +294,12 @@ class Datastream:
 
         # Find times of missing rows
         times = pd.date_range(
-            start=prior_date, end=date, periods=interpolate_elements + 2
+            start=prior_date, end=date, periods=interpolate_elements + 1
         )[1:-1]  # Excludes date, prior date (2 extra elements)
         insert = pd.DataFrame(
-            np.nan, columns=data.columns, index=np.arange(i, i + interpolate_elements)
+            np.nan,
+            columns=data.columns,
+            index=np.arange(i, i + interpolate_elements - 1),
         )
         insert["time"] = times
         data = pd.concat([data.iloc[:i], insert, data.iloc[i:]]).reset_index(drop=True)
