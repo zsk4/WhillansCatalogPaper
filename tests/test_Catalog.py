@@ -87,7 +87,7 @@ def test_lls_detection():
 
 def test_no_data_csv():
     dir = "./tests/ExamplePos"
-    stas = ["la01"]
+    stas = ["la01", "la02"]
     years = ["2010", "2011"]
     interpolation_time = 15
     max_gap_len = 120
