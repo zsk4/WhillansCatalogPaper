@@ -1,6 +1,7 @@
 # Event dataframe files
 *.evt
-tests/ExamplePos/slw1/
+# No data text files
+*no_data.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

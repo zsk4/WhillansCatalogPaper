@@ -291,15 +291,16 @@ class Datastream:
             data - interpolated DataFrame [DataFrame]
         """
         data = self.data
-        # Loop over each missing row
-        for row in range(interpolate_elements - 1):
-            # Make data frame row
-            insert = pd.DataFrame(columns=data.columns, index=[i + row])
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                data = pd.concat(
-                    [data.iloc[: i + row], insert, data.iloc[i + row :]]
-                ).reset_index(drop=True)
+
+        # Find times of missing rows
+        times = pd.date_range(
+            start=prior_date, end=date, periods=interpolate_elements + 2
+        )[1:-1]  # Excludes date, prior date (2 extra elements)
+        insert = pd.DataFrame(
+            np.nan, columns=data.columns, index=np.arange(i, i + interpolate_elements)
+        )
+        insert["time"] = times
+        data = pd.concat([data.iloc[:i], insert, data.iloc[i:]]).reset_index(drop=True)
 
         with warnings.catch_warnings():
             warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -411,7 +412,8 @@ class Picks:
             dividing_factor = sta.interpolation_time // 15
             increment = increment // dividing_factor
             slide = slide // dividing_factor
-            # print(name, increment, slide)
+            inc_slide = increment // slide
+
             if increment % slide != 0:
                 raise Exception("Increment / Slide not an Integer")
 
@@ -427,25 +429,25 @@ class Picks:
                     end_pos = start_pos + increment
                     first_entry = sta.data.iloc[start].name
 
-                    time_arr = sta.data["time"][start:end].reset_index(drop=True)
-                    x_arr = sta.data["x"][start:end].reset_index(drop=True)
-                    y_arr = sta.data["y"][start:end].reset_index(drop=True)
-                    z_arr = sta.data["elevation"][start:end].reset_index(drop=True)
+                    time_arr = sta.data["time"].iloc[start:end].reset_index(drop=True)
+                    x_arr = sta.data["x"].iloc[start:end].reset_index(drop=True)
+                    y_arr = sta.data["y"].iloc[start:end].reset_index(drop=True)
+                    z_arr = sta.data["elevation"].iloc[start:end].reset_index(drop=True)
                     xs.append(x_arr)
                     ys.append(y_arr)
                     zs.append(z_arr)
                     times.append(time_arr)
 
-                    time_in_sec = np.zeros(length)
-                    for i in range(length):
-                        time_in_sec[i] = (
-                            sta.data["time"][first_entry + i]
-                            - datetime.datetime(2000, 1, 1)
-                        ).total_seconds()  # Get time from 2000
+                    # Reworked so no loop
+                    time_in_sec = (
+                        sta.data["time"][first_entry : first_entry + length]
+                        - datetime.datetime(2000, 1, 1)
+                    ).dt.total_seconds()  # Get time from 2000
 
                     # Find the linear least square average at each window
-                    averaging_pts = np.zeros(length // slide)
-                    for i in range((length // slide) - increment // slide):
+                    len_slide = length // slide
+                    averaging_pts = np.zeros(len_slide)
+                    for i in range(len_slide - inc_slide):
                         box = np.zeros(length)
                         box[start_pos:end_pos] = 1
                         func = np.multiply(sta.data["x"][start:end], box)  # Summation
@@ -474,7 +476,6 @@ class Picks:
                         start_pos += slide
                         end_pos += slide
                     residuals.append(residual_arr)
-
             sta.residuals = residuals
             sta.xs = xs
             sta.ys = ys
@@ -492,39 +493,29 @@ class Picks:
             Mega dataframe with all traces
 
         """
+
         # Make individual dataframes to merge and merge dataframes
+        merged = None
         for iter, sta in enumerate(self.stas):
             # print(iter,sta.name)
-            flat_times = []
-            for xs in sta.times:
-                for x in xs:
-                    flat_times.append(x)
-            flat_xs = []
-            for xs in sta.xs:
-                for x in xs:
-                    flat_xs.append(x)
-            flat_res = []
-            for xs in sta.residuals:
-                for x in xs:
-                    flat_res.append(x)
-            flat_ys = []
-            for xs in sta.ys:
-                for x in xs:
-                    flat_ys.append(x)
+
+            #
             df = pd.DataFrame(
                 {
-                    "time": flat_times,
-                    sta.name + "x": flat_xs,
-                    sta.name + "y": flat_ys,
-                    sta.name + "res": flat_res,
+                    "time": (time for xs in sta.times for time in xs),
+                    sta.name + "x": (x for xs in sta.xs for x in xs),
+                    sta.name + "y": (y for ys in sta.ys for y in ys),
+                    sta.name + "res": (res for xs in sta.residuals for res in xs),
                 }
             )
-            if iter == 0:
-                merged = df
-            if iter >= 1:
-                merged = merged.merge(df, how="outer", on="time")
 
-        merged = merged.sort_values(by="time", ignore_index=True)
+            if merged is None:
+                merged = df
+            else:
+                merged = pd.merge(merged, df, how="outer", on="time")
+
+        merged = merged.sort_values(by="time", ignore_index=True)  # type: ignore
+
         if "la02res" in merged.columns:
             merged["la02res"] = merged["la02res"].interpolate(method="linear", limit=1)
             merged["la02x"] = merged["la02x"].interpolate(method="linear", limit=1)
@@ -570,6 +561,9 @@ class Picks:
         df_no_data: pd.DataFrame
             Dataframe of no data times
         """
+        if len(self.stas) < 2:
+            raise Exception("Not Enough Stations to Make No Data CSV")
+
         on_stas = 0
         prior_on_stas = 0
         start_no_data = []
@@ -992,7 +986,7 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
         or "2014_30Sec" in years
     ):
         interpolation_time = 30
-    elif sta == "la09" and ("2010" in years):
+    elif sta == "la09" and ("2010_30sec" in years):
         interpolation_time = 30
 
     return interpolation_time, run
