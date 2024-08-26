@@ -289,7 +289,10 @@ class Datastream:
                 data = pd.concat(
                     [data.iloc[: i + row], insert, data.iloc[i + row :]]
                 ).reset_index(drop=True)
-        data = data.interpolate(method="linear")  # Built-in pandas function
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=FutureWarning)
+            data = data.interpolate(method="linear")  # Built-in pandas function
         return data
 
     def findgaps(self, max_gap_len: int) -> Self:
@@ -336,8 +339,7 @@ class Datastream:
                         interpolate_elements = int(
                             gap.total_seconds() // self.interpolation_time
                         )
-                        logger.info(prior_date, date, gap, i)
-                        print(prior_date, date, gap, i)
+                        logger.info(f"{prior_date} {date} {gap}")
                         _data = self.interpolate(
                             prior_date, date, gap, i, interpolate_elements
                         )
@@ -384,9 +386,6 @@ class Picks:
         # Look for a more scientific way to choose variables increment and slide
         # besides what gives the best event detections.
 
-        if increment % slide != 0:
-            raise Exception("Increment / Slide not an Integer")
-
         # Loop for each station z
         for z, sta in enumerate(self.stas[:]):
             name = sta.name
@@ -396,6 +395,14 @@ class Picks:
             ys = []
             zs = []
             residuals = []
+
+            # Make increment and slide match that for 15 second data
+            dividing_factor = sta.interpolation_time // 15
+            increment = increment // dividing_factor
+            slide = slide // dividing_factor
+            # print(name, increment, slide)
+            if increment % slide != 0:
+                raise Exception("Increment / Slide not an Integer")
 
             # Loop over each start and end time
             for st, en in zip(sta.starts, sta.ends):
@@ -441,6 +448,7 @@ class Picks:
 
                     # Create residual array by using average at each point
                     residual_arr = np.zeros(length)
+
                     start_pos = 0
                     end_pos = start_pos + increment
                     first_entry = sta.data.iloc[start].name
@@ -506,6 +514,9 @@ class Picks:
                 merged = merged.merge(df, how="outer", on="time")
 
         merged = merged.sort_values(by="time", ignore_index=True)
+        if "la02res" in merged.columns:
+            merged["la02res"] = merged["la02res"].interpolate(method="linear", limit=1)
+            merged["la02x"] = merged["la02x"].interpolate(method="linear", limit=1)
         return merged
 
     def on_off_list(self) -> pd.DataFrame:
@@ -918,15 +929,13 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
     interpolation_time = 15
     run = True
 
-    if (
-        sta == "la02"
-        and ("2008" or "2009" or "2010" or "2011" or "2012" or "2013" or "2014")
-        in years
+    if sta == "la02" and (
+        "2008" or "2009" or "2010" or "2011" or "2012" or "2013" or "2014" in years
     ):
         interpolation_time = 30
-    elif sta == "slw1" and ("2009" or "2010") in years:
+    elif sta == "slw1" and ("2009" or "2010" in years):
         run = False
-    elif sta == "la09" and "2010" in years:
+    elif sta == "la09" and ("2010" in years):
         interpolation_time = 30
 
     return interpolation_time, run
