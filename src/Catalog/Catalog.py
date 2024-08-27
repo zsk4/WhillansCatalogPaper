@@ -46,6 +46,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from pathlib import Path
 import logging
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -412,9 +413,9 @@ class Picks:
 
             # Make increment and slide match that for 15 second data
             dividing_factor = sta.interpolation_time // 15
-            increment = increment // dividing_factor
-            slide = slide // dividing_factor
-            inc_slide = increment // slide
+            increment = int(increment // dividing_factor)
+            slide = int(slide // dividing_factor)
+            inc_slide = int(increment // slide)
 
             if increment % slide != 0:
                 raise Exception("Increment / Slide not an Integer")
@@ -447,7 +448,7 @@ class Picks:
                     ).dt.total_seconds()  # Get time from 2000
 
                     # Find the linear least square average at each window
-                    len_slide = length // slide
+                    len_slide = int(length // slide)
                     averaging_pts = np.zeros(len_slide)
                     for i in range(len_slide - inc_slide):
                         box = np.zeros(length)
@@ -468,9 +469,9 @@ class Picks:
                     end_pos = start_pos + increment
                     first_entry = sta.data.iloc[start].name
 
-                    num = increment // slide
-                    for i in range(length // slide):
-                        if i > increment // slide:
+                    num = int(increment // slide)
+                    for i in range(int(length // slide)):
+                        if i > num:
                             avg = 0
                             for j in range(i - num, i):
                                 avg = avg + averaging_pts[j]
@@ -500,14 +501,17 @@ class Picks:
         merged = None
         for iter, sta in enumerate(self.stas):
             # print(iter,sta.name)
+            times = list(itertools.chain.from_iterable(sta.times))
+            x_col = list(itertools.chain.from_iterable(sta.xs))
+            y_col = list(itertools.chain.from_iterable(sta.ys))
+            res_col = list(itertools.chain.from_iterable(sta.residuals))
 
-            #
             df = pd.DataFrame(
                 {
-                    "time": (time for xs in sta.times for time in xs),
-                    sta.name + "x": (x for xs in sta.xs for x in xs),
-                    sta.name + "y": (y for ys in sta.ys for y in ys),
-                    sta.name + "res": (res for xs in sta.residuals for res in xs),
+                    "time": times,
+                    sta.name + "x": x_col,
+                    sta.name + "y": y_col,
+                    sta.name + "res": res_col,
                 }
             )
 
@@ -516,7 +520,12 @@ class Picks:
             else:
                 merged = pd.merge(merged, df, how="outer", on="time")
 
-        merged = merged.sort_values(by="time", ignore_index=True)  # type: ignore
+            del df
+
+        # Check df made
+        assert merged is not None
+
+        merged.sort_values(by="time", ignore_index=True, inplace=True)
 
         if "la02res" in merged.columns:
             merged["la02res"] = merged["la02res"].interpolate(method="linear", limit=1)
