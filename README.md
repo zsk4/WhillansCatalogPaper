@@ -14,3 +14,7 @@ from Siegfried et al., 2016.
 # Citation
 If you use code from this repository, please cite both the publication and the code.
 If you use data from this respository, please site both the publication and the data.
+
+Tides testing: Need to get pytmd info from aws
+Download using wget https://pytmd.s3.amazonaws.com/CATS2008/hf.CATS2008.out
+OR via AWS like Tyler does...but may need an account which requires a credit card
