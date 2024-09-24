@@ -106,6 +106,7 @@ class Datastream:
 
         # Filled in when lls_detection is run
         self.residuals = None
+        self.residual_avg = None
         self.xs = None
         self.ys = None
         self.zs = None
@@ -280,7 +281,7 @@ class Datastream:
         """
         Interpolate the given data gap using Pandas' linear interpolation scheme.
 
-        Input Parametrers
+        Input Parameters
             data - PandasDataframe with time gaps [DataFrame]
             prior_data - last time entry before data gap [Datetime]
             date - first time entry after data gap [Datetime]
@@ -410,6 +411,7 @@ class Picks:
             ys = []
             zs = []
             residuals = []
+            residual_avg = []
 
             # Make increment and slide match that for 15 second data
             dividing_factor = sta.interpolation_time // 15
@@ -479,6 +481,10 @@ class Picks:
                         start_pos += slide
                         end_pos += slide
                     residuals.append(residual_arr)
+                    residual_avg.append(
+                        np.ones(len(residual_arr)) * np.average(residual_arr)
+                    )
+            sta.residual_avg = residual_avg
             sta.residuals = residuals
             sta.xs = xs
             sta.ys = ys
@@ -505,6 +511,7 @@ class Picks:
             x_col = list(itertools.chain.from_iterable(sta.xs))
             y_col = list(itertools.chain.from_iterable(sta.ys))
             res_col = list(itertools.chain.from_iterable(sta.residuals))
+            res_avg_col = list(itertools.chain.from_iterable(sta.residual_avg))
 
             df = pd.DataFrame(
                 {
@@ -512,6 +519,7 @@ class Picks:
                     sta.name + "x": x_col,
                     sta.name + "y": y_col,
                     sta.name + "res": res_col,
+                    sta.name + "res_avg": res_avg_col,
                 }
             )
 
@@ -529,6 +537,9 @@ class Picks:
 
         if "la02res" in merged.columns:
             merged["la02res"] = merged["la02res"].interpolate(method="linear", limit=1)
+            merged["la02res_avg"] = merged["la02res_avg"].interpolate(
+                method="linear", limit=1
+            )
             merged["la02x"] = merged["la02x"].interpolate(method="linear", limit=1)
         return merged
 
@@ -644,7 +655,7 @@ class Events:
             indices.append(index)
         return indices
 
-    def pick_events(self, sorted: pd.DataFrame, active_stas: int) -> float:
+    def pick_events(self, sorted: pd.DataFrame, active_stas: int) -> np.ndarray:
         """Get a of indices of when stations turn on/off. Updates Events in place
 
         Parameters
@@ -659,22 +670,21 @@ class Events:
             Threshold value of summed residual for event detection
         """
 
-        # For 2007-2009 I used thresh = avg + 0.5 * std
-        # and checked to ensure both traces were active.
-        # For 2010-2019 I used thresh = avg
         logger.info("Picking Events")
         # Find combined least square residual for each time block O(10 min)
-        res_cols = [col for col in self.merged if str(col).endswith("res")]
-        x_cols = [col for col in self.merged if str(col).endswith("x")]
-
-        self.merged["ressum"] = self.merged[res_cols].sum(axis=1)
         # Use the peaks and an average thresholding algortihm to pick out the events.
-        avg = np.average(self.merged["ressum"])
-        std = np.std(self.merged["ressum"])
-        logger.info(f"Average: {avg}, Standard Deviation: {std}")
+        x_cols = [col for col in self.merged.columns if col.endswith("x")]
+        res_cols = [col for col in self.merged.columns if col.endswith("res")]
+        res_avg_cols = [col for col in self.merged.columns if col.endswith("res_avg")]
 
-        event = np.zeros(len(self.merged["ressum"]))
-        thresh = avg  # Threshold choice here e.g, avg + std
+        # Find residual sum and averages
+        sum_res_avg = np.nansum(self.merged[res_avg_cols], axis=1)
+        sum_res = np.nansum(self.merged[res_cols], axis=1)
+        self.merged["sum_res_avg"] = sum_res_avg
+        self.merged["sum_res"] = sum_res
+
+        event = np.zeros(len(self.merged["sum_res"]))
+        thresh = self.merged["sum_res_avg"]  # Threshold choice here e.g, avg + std
         x_col_check = active_stas - 1  # Indexed at 0 so subtract 1
         for i in range(len(event)):
             nansum = 0
@@ -682,13 +692,16 @@ class Events:
                 nan_check = self.merged[col][i]
                 if np.isnan(nan_check):
                     nansum += 1
+
             if (
-                self.merged["ressum"][i] > thresh and nansum < len(x_cols) - x_col_check
+                self.merged["sum_res"][i] > thresh[i]
+                and nansum < len(x_cols) - x_col_check
             ):  # Check at least two non-nan cols
                 event[i] = 1
+
         self.merged["event"] = event
 
-        return thresh
+        return np.array(thresh)
 
     def plot_picking(
         self,
@@ -1001,3 +1014,71 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
         interpolation_time = 30
 
     return interpolation_time, run
+
+
+def event_start_time(folders: list, name: str) -> None:
+    """
+    Get the start time of an event
+
+    Parameters
+    ----------
+    event: pd.DataFrame
+        Event to get start time of
+    name: str
+        Name of event start time text file
+    """
+    # Load events into dataframe
+    data: dict = {"event": [], "trace_time": []}
+
+    for folder in folders:
+        for file in os.listdir(folder):
+            df = pd.read_csv(f"{folder}/{file}", sep="\t")
+            data["event"].append(df)
+            data["trace_time"].append(file[:-4])
+    # Compute average second derivatives of all traces for each event
+    avg_grad2s = []
+    for event in data["event"][:]:
+        x_cols = [col for col in event if col.endswith("x")]
+        grad2s = []
+        # print(len(event['time']),event['time'][0])
+        for x_col in x_cols:
+            grad = _derivative(event["time"], event[x_col], 4, 0.1, 15)
+            grad2 = _derivative(event["time"], grad, 4, 0.05, 15)
+            grad2s.append(grad2)
+        avg_grad2s.append(np.nanmean(grad2s, axis=0))
+    data["grad2"] = avg_grad2s
+
+    # Compute index of max
+    max_index = [np.argmax(i) for i in data["grad2"]]
+    data["grad2maxIndex"] = max_index
+
+    # Calculate event start times based on 2nd derivative
+    data["ev_time"] = [
+        data["event"][i]["time"][data["grad2maxIndex"][i]]
+        for i in range(len(data["event"]))
+    ]
+
+    # make df and export
+    df = pd.DataFrame({"EventStartTime": data["ev_time"]})
+    df.to_csv(f"{name}.txt", sep="\t", index=False)
+
+
+def _derivative(time, x_col, order, crit, spacing):
+    """
+    Compute the first and second derivative of a smoothed time series
+    Parameters
+    time - event with times
+    x_col - column of x values of which to take the derivative of
+    order - order of butterworth filter
+    crit - critical value of butterworth filter
+    spacing - spacing of gradient
+    Returns
+    grad2 - Second derivative [list]
+    """
+    y_data = x_col - np.mean(x_col)
+
+    # 1st derivative
+    b, a = scipy.signal.butter(order, crit)
+    filtered = scipy.signal.filtfilt(b, a, y_data, padlen=50)
+    grad = np.gradient(filtered, spacing)
+    return grad
