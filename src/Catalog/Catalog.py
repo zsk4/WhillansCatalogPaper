@@ -821,7 +821,7 @@ class Events:
                     ltred = (237 / 255, 179 / 255, 165 / 255)
                     ax2.plot(
                         merged["time"][start:end],
-                        np.ones_like(merged["ressum"][start:end]) * thresh,
+                        thresh,
                         color=ltred,
                     )
                     ax2.set_ylabel(
