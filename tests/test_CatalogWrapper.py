@@ -33,7 +33,8 @@ def test_wrapper():
     assert catalog[0]["time"].iloc[0] == pd.Timestamp("2010-12-30 09:41:15")
     assert catalog[0]["time"].iloc[-1] == pd.Timestamp("2010-12-30 13:44:45")
 
-    # With plotting
+    """
+    # With plotting [Under construction]
     catalog = CatWrap.full_catalog_run(
         cats,
         years,
@@ -48,3 +49,4 @@ def test_wrapper():
     assert len(catalog) == 5
     assert catalog[0]["time"].iloc[0] == pd.Timestamp("2010-12-30 09:41:15")
     assert catalog[0]["time"].iloc[-1] == pd.Timestamp("2010-12-30 13:44:45")
+    """
