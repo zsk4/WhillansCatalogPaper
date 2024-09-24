@@ -681,9 +681,9 @@ class Events:
         sum_res_avg = np.nansum(self.merged[res_avg_cols], axis=1)
         sum_res = np.nansum(self.merged[res_cols], axis=1)
         self.merged["sum_res_avg"] = sum_res_avg
-        self.merged["sum_res"] = sum_res
+        self.merged["ressum"] = sum_res
 
-        event = np.zeros(len(self.merged["sum_res"]))
+        event = np.zeros(len(self.merged["ressum"]))
         thresh = self.merged["sum_res_avg"]  # Threshold choice here e.g, avg + std
         x_col_check = active_stas - 1  # Indexed at 0 so subtract 1
         for i in range(len(event)):
@@ -694,7 +694,7 @@ class Events:
                     nansum += 1
 
             if (
-                self.merged["sum_res"][i] > thresh[i]
+                self.merged["ressum"][i] > thresh[i]
                 and nansum < len(x_cols) - x_col_check
             ):  # Check at least two non-nan cols
                 event[i] = 1
