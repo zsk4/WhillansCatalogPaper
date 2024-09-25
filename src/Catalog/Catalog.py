@@ -893,6 +893,7 @@ class Events:
         for event in cull_time_catalog:
             x_cols = [col for col in catalog[0] if str(col).endswith("x")]
             end_avg = 0.0
+            x_col_not_nan = 0
             for x_col in x_cols:
                 if not np.isnan(event[x_col].iloc[-1]):
                     # Demean to 0 at start
@@ -902,7 +903,8 @@ class Events:
                         - (event[x_col].iloc[0] - np.mean(event[x_col]))
                     )
                     end_avg += end_val
-            end_avg = end_avg / len(x_cols)
+                    x_col_not_nan += 1
+            end_avg = end_avg / x_col_not_nan
             if end_avg > cull_dist:
                 cull_dist_catalog.append(event)
 
