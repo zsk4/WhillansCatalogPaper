@@ -592,6 +592,7 @@ class Picks:
         prior_on_stas = 0
         start_no_data = []
         end_no_data = []
+        end_no_data.append(sorted["times"][0])
         for i, row in enumerate(sorted.iterrows()):
             if row[1]["onset"] is True:
                 on_stas += 1

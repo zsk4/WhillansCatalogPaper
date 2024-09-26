@@ -113,7 +113,7 @@ def test_no_data_csv():
         "station": ["la02", "la01", "la02", "la01"],
     }
     sorted = pd.DataFrame(data=d)
-    df_no_data = picks.no_data_csv(sorted)
+    df_no_data = picks.no_data_csv(2, sorted)
     assert df_no_data.empty
 
     # Test gap at start
@@ -128,7 +128,7 @@ def test_no_data_csv():
         "station": ["la02", "la01", "la02", "la01"],
     }
     sorted = pd.DataFrame(data=d)
-    df_no_data = picks.no_data_csv(sorted)
+    df_no_data = picks.no_data_csv(2, sorted)
     assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-01-01 00:00:00")
     assert df_no_data["end"].iloc[0] == pd.to_datetime("2010-03-01 00:00:00")
 
@@ -144,7 +144,7 @@ def test_no_data_csv():
         "station": ["la02", "la01", "la02", "la01"],
     }
     sorted = pd.DataFrame(data=d)
-    df_no_data = picks.no_data_csv(sorted)
+    df_no_data = picks.no_data_csv(2, sorted)
     assert df_no_data["start"].iloc[0] == pd.to_datetime("2011-10-23 12:50:15")
     assert df_no_data["end"].iloc[0] == pd.to_datetime("2011-12-31 23:59:45")
 
@@ -160,7 +160,7 @@ def test_no_data_csv():
         "station": ["la02", "la01", "la02", "la01"],
     }
     sorted = pd.DataFrame(data=d)
-    df_no_data = picks.no_data_csv(sorted)
+    df_no_data = picks.no_data_csv(2, sorted)
     assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-01-01 00:00:00")
     assert df_no_data["end"].iloc[0] == pd.to_datetime("2010-03-01 00:00:00")
     assert df_no_data["start"].iloc[-1] == pd.to_datetime("2011-10-23 12:50:15")
@@ -198,7 +198,7 @@ def test_no_data_csv():
         "station": ["la02", "la01", "la01", "la01", "la02", "la01"],
     }
     sorted = pd.DataFrame(data=d)
-    df_no_data = picks.no_data_csv(sorted)
+    df_no_data = picks.no_data_csv(2, sorted)
     assert df_no_data["start"].iloc[0] == pd.to_datetime("2010-05-01 00:00:00")
     assert df_no_data["end"].iloc[0] == pd.to_datetime("2011-03-01 00:00:00")
     assert df_no_data["start"].iloc[-1] == pd.to_datetime("2011-10-23 12:50:15")
