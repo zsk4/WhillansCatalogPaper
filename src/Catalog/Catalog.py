@@ -571,19 +571,21 @@ class Picks:
 
         return sorted_list
 
-    def no_data_csv(self, sorted: pd.DataFrame) -> pd.DataFrame:
+    def no_data_csv(self, min_sta: int, sorted: pd.DataFrame) -> pd.DataFrame:
         """Export csv with times of no data
 
         Parameters
         ----------
         sorted: pd.DataFrame
             Sorted list of onsets and offsets made by on_off_list
+        min_sta: int
+            Minimum number of stations to consider no stations
 
         Returns
         df_no_data: pd.DataFrame
             Dataframe of no data times
         """
-        if len(self.stas) < 2:
+        if len(self.stas) < min_sta:
             raise Exception("Not Enough Stations to Make No Data CSV")
 
         on_stas = 0
@@ -596,9 +598,9 @@ class Picks:
             if row[1]["onset"] is False:
                 on_stas -= 1
             if i >= 1:
-                if prior_on_stas == 2 and on_stas == 1:
+                if prior_on_stas == min_sta and on_stas == min_sta - 1:
                     start_no_data.append(row[1]["times"])
-                if prior_on_stas == 1 and on_stas == 2:
+                if prior_on_stas == min_sta - 1 and on_stas == min_sta:
                     end_no_data.append(row[1]["times"])
             prior_on_stas = on_stas
 
@@ -902,8 +904,11 @@ class Events:
                         - np.mean(event[x_col])
                         - (event[x_col].iloc[0] - np.mean(event[x_col]))
                     )
-                    end_avg += end_val
-                    x_col_not_nan += 1
+                    if not np.isnan(
+                        end_val
+                    ):  # Ignore traces that don't span the full event
+                        end_avg += end_val
+                        x_col_not_nan += 1
             end_avg = end_avg / x_col_not_nan
             if end_avg > cull_dist:
                 cull_dist_catalog.append(event)
@@ -937,7 +942,7 @@ def plot_event(event_to_plot: pd.DataFrame) -> None:
 
     event_to_plot: Catalog Number of Event To Plot
     """
-
+    times = pd.to_datetime(event_to_plot["time"])
     # res_cols = [col for col in merged if col.endswith('res')]
     x_cols = [col for col in event_to_plot if str(col).endswith("x")]
     fig, ax1 = plt.subplots()
@@ -950,7 +955,7 @@ def plot_event(event_to_plot: pd.DataFrame) -> None:
             if first:
                 ax2_dummy = demeaned_to_0
                 first = False
-            ax1.plot(event_to_plot["time"], demeaned_to_0, label=str(x_col)[:-1])
+            ax1.plot(times, demeaned_to_0, label=str(x_col)[:-1])
     ax1.set_ylabel("X Displacement [meters]")
     ax1.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax1.legend()
@@ -967,7 +972,7 @@ def plot_event(event_to_plot: pd.DataFrame) -> None:
     ax2.set_xlabel("DateTime")
 
     # Need to plot something on ax2 to getthe correct dates
-    ax2.plot(event_to_plot["time"], ax2_dummy)
+    ax2.plot(times, ax2_dummy)
     for label in ax2.xaxis.get_ticklabels()[::2]:
         label.set_visible(False)
 
@@ -1044,9 +1049,10 @@ def event_start_time(folders: list, name: str) -> None:
         grad2s = []
         # print(len(event['time']),event['time'][0])
         for x_col in x_cols:
-            grad = _derivative(event["time"], event[x_col], 4, 0.1, 15)
-            grad2 = _derivative(event["time"], grad, 4, 0.05, 15)
-            grad2s.append(grad2)
+            if not (np.isnan(event[x_col].iloc[0]) or np.isnan(event[x_col].iloc[-1])):
+                grad = _derivative(event["time"], event[x_col], 4, 0.1, 15)
+                grad2 = _derivative(event["time"], grad, 4, 0.05, 15)
+                grad2s.append(grad2)
         avg_grad2s.append(np.nanmean(grad2s, axis=0))
     data["grad2"] = avg_grad2s
 
