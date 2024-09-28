@@ -592,7 +592,9 @@ class Picks:
         prior_on_stas = 0
         start_no_data = []
         end_no_data = []
-        end_no_data.append(sorted["times"][0])
+
+        if min_sta == 1:
+            end_no_data.append(sorted["times"][0])
         for i, row in enumerate(sorted.iterrows()):
             if row[1]["onset"] is True:
                 on_stas += 1
@@ -622,7 +624,9 @@ class Picks:
 
         df_no_data = pd.DataFrame({"start": start_no_data, "end": end_no_data})
 
-        df_no_data.to_csv(f"{st_year}-{end_year}no_data.txt", index=False, sep="\t")
+        df_no_data.to_csv(
+            f"{st_year}-{end_year}no_data_{min_sta}sta.txt", index=False, sep="\t"
+        )
         return df_no_data
 
 
