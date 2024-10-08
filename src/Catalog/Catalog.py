@@ -713,7 +713,7 @@ class Events:
     def plot_picking(
         self,
         indices: list,
-        thresh: float,
+        thresh: np.ndarray,
         num_plots: int,
     ) -> None:
         """Plot events until the nth gap.
@@ -724,7 +724,7 @@ class Events:
             List of indices of when stations turn on/off
         num_plots : int
             Number of plots to make
-        thresh : float
+        thresh : list
             Threshold value of summed residual for event detection
         """
         merged = self.merged

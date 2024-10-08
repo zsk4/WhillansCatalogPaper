@@ -52,7 +52,7 @@ def full_catalog_run(
     picks.lls_detection(window, slide)
     merged_df = picks.merge()
     sorted_list = picks.on_off_list()
-    picks.no_data_csv(sorted_list)
+    picks.no_data_csv(2, sorted_list)
 
     merged = Catalog.Events(merged_df)
     threshold = merged.pick_events(sorted_list, active_stas=2)
