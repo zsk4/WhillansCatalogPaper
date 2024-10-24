@@ -2,6 +2,7 @@
 *.evt
 # No data text files
 *no_data.txt
+*SquaresGMT.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

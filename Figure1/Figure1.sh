@@ -7,7 +7,7 @@
 
 #TODO Write function to compute figwidth so not repeated as figwidth and mfigwidth
 
-#Adapted from Pygmt scripts on Siegfried Github
+#Adapted from Pygmt scripts on Matthew Siegfried's Github
 #SiegVent2023-Geology/figures/plot_siegvent2023_fig1.ipynb
 #Siegfried2021-GRL/figures/fig1-map/plotSiegfried2021map.sh
 
@@ -19,6 +19,8 @@ stationsTop=StationsTop.txt
 stationsBottom=StationsBottom.txt
 stationsGZTop=StationsGZTop.txt
 stationsGZBottom=StationsGZBottom.txt
+stationsGZ15=GZ15.txt
+stationsLA08=LA08.txt
 
 #Set region in PS71=3031
 xl=-310000
@@ -67,8 +69,15 @@ moa_gl=${background}/moa_2009_groundingline_v02.0.gmt
 #Magnitude of velocity map made at the command line following Siegfried and Fricker 2021
 # > vel = ${background}/antarctic_ice_vel_phase_map_v01
 # > gmt grdmath ${vel}?VX 2 POW ${vel}?VY 2 POW ADD SQRT 1000 DIV = ${vel}-vmag.nc
+# > gmt grdmath ${vel}?VX 1000 DIV = ${vel}-VX.nc
+# > gmt grdmath ${vel}?VX 1000 DIV = ${vel}-VY.nc
 vel=${background}/antarctic_ice_vel_phase_map_v01-vmag.nc #Velocity field
+vx=${background}/antarctic_ice_vel_phase_map_v01-VX.nc
+vy=${background}/antarctic_ice_vel_phase_map_v01-VY.nc
 
+# Normalized arrows
+#vx=${background}/antarctic_ice_vel_phase_map_v01.nc-VXnorm.nc
+#vy=${background}/antarctic_ice_vel_phase_map_v01.nc-VYnorm.nc
 
 ### BEGIN PLOTTING ###
 gmt begin
@@ -109,7 +118,6 @@ done < groups
 rm groups
 printf "\ndone plotting lake outlines\n"
 
-
 #Lat/Long lines
 gmt basemap -J$llprojection -R$region -Bxa10g10 -Bya1g1 -BWENS \
 --MAP_FRAME_TYPE=inside --FONT_ANNOT_PRIMARY=10p,gray95 \
@@ -121,6 +129,7 @@ gmt basemap -J$llprojection -R$region -Bxa10g10 -Bya1g1 -BWENS \
 echo Ice Velocity
 gmt makecpt -Coslo -T0/500/1 #--COLOR_FOREGROUND=240/249/33 --COLOR_BACKGROUND=13/8/135 
 gmt grdimage $vel -R$region -J$projection -t40 -C 
+gmt grdvector $vx $vy -R$region -J$projection -Ix24 -Q0.2c+e@50 -Ggray@50 -W1p,gray@50 -S0.8c #-S2c
 
 #Grounding Line
 echo Grounding Line
@@ -159,8 +168,10 @@ EOF
 #Stations and Labels
 #echo Stations and Labels
 awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -R$region -J$projection -Si0.2c -G255 -W0.2p,black
-awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f7p,Helvetica-Bold,white -D0c/0.25c 
-awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f7p,Helvetica-Bold,white -D0c/-0.25c 
+awk 'NR>1{print $1, $2}' ${stationsLA08} | gmt psxy -R$region -J$projection -Si0.2c -G33/49/77 -W0.2p,black
+awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -R$region -J$projection -Si0.2c -G160/56/32 -W0.2p,black
+awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/0.25c 
+awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/-0.25c 
 
 # GL Label
 gmt text -R$region -J$projection -F+a310+f9p,Helvetica,white <<EOF
@@ -225,9 +236,11 @@ gmt subplot begin 1x1 -Ff${mfigwidthcm}c/${mfigheightcm}c -M${margin}c -C0.5c -X
 gmt grdimage $moa -R$mgz+r -J$mprojection -Cmoa.cpt -Blrbt
 gmt makecpt -Coslo -T0/500/1 #--COLOR_FOREGROUND=240/249/33 --COLOR_BACKGROUND=13/8/135 
 gmt grdimage $vel -J${mprojection} -R$mgz+r -t40 -C -Blrbt
+gmt grdvector $vx $vy -R$mgz+r -J${mprojection} -Ix15 -Q0.2c+e@50 -Ggray@50 -W1p,gray@50  -S0.8c #-S2c
 gmt psxy $gl -J${mprojection} -R$mgz+r -W0.5p,gray90 -Blrbt
 
 awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -J${mprojection} -R$mgz+r -Si0.2c -G255 -W0.2p,black -Blrbt
+awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -J${mprojection} -R$mgz+r -Si0.2c -G160/56/32 -W0.2p,black -Blrbt
 awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZTop} | gmt pstext -J$mprojection -D0c/0.3c -F+j+f7p,Helvetica-Bold,white
 awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZBottom} | gmt pstext -J$mprojection -D0c/-0.3c -F+j+f7p,Helvetica-Bold,white
 
