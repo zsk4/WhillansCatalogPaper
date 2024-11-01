@@ -397,7 +397,7 @@ class Picks:
         slide: int
             Data points to slide the window each cyclewith pytest.raises(Exception) as e_info:
         """
-        # Perform using actual times rather than number of data points to accommodate la02's 30 second increments
+        # Perform using actual times rather than number of data points to accommodate la09's 30 second increments
 
         # Look for a more scientific way to choose variables increment and slide
         # besides what gives the best event detections.
@@ -535,12 +535,12 @@ class Picks:
 
         merged.sort_values(by="time", ignore_index=True, inplace=True)
 
-        if "la02res" in merged.columns:
-            merged["la02res"] = merged["la02res"].interpolate(method="linear", limit=1)
-            merged["la02res_avg"] = merged["la02res_avg"].interpolate(
+        if "la00res" in merged.columns:
+            merged["la09res"] = merged["la09res"].interpolate(method="linear", limit=1)
+            merged["la09res_avg"] = merged["la09res_avg"].interpolate(
                 method="linear", limit=1
             )
-            merged["la02x"] = merged["la02x"].interpolate(method="linear", limit=1)
+            merged["la09x"] = merged["la09x"].interpolate(method="linear", limit=1)
         return merged
 
     def on_off_list(self) -> pd.DataFrame:
@@ -624,8 +624,12 @@ class Picks:
 
         df_no_data = pd.DataFrame({"start": start_no_data, "end": end_no_data})
 
+        output_dir = Path(f"./NoData{min_sta}stas")
+        output_dir.mkdir(parents=True, exist_ok=True)
         df_no_data.to_csv(
-            f"{st_year}-{end_year}no_data_{min_sta}sta.txt", index=False, sep="\t"
+            f"{output_dir}/{st_year}-{end_year}no_data_{min_sta}sta.txt",
+            index=False,
+            sep="\t",
         )
         return df_no_data
 
@@ -1012,7 +1016,7 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
     interpolation_time = 15
     run = True
 
-    if sta == "la02" and (
+    if sta == "la09" and (
         "2008"
         or "2009"
         or "2010"
@@ -1028,16 +1032,18 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
     return interpolation_time, run
 
 
-def event_start_time(folders: list, name: str) -> None:
+def event_start_time(folders: list, name: str, name_doc: str) -> None:
     """
     Get the start time of an event
 
     Parameters
     ----------
-    event: pd.DataFrame
-        Event to get start time of
+    folders: list
+        List of folders with event data
     name: str
-        Name of event start time text file
+        Name of event start time directory
+    name_doc: str
+        Name of save file
     """
     # Load events into dataframe
     data: dict = {"event": [], "trace_time": []}
@@ -1073,7 +1079,9 @@ def event_start_time(folders: list, name: str) -> None:
 
     # make df and export
     df = pd.DataFrame({"EventStartTime": data["ev_time"]})
-    df.to_csv(f"{name}.txt", sep="\t", index=False)
+    output_dir = Path(name)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    df.to_csv(f"{output_dir}/{name_doc}.txt", sep="\t", index=False)
 
 
 def _derivative(time, x_col, order, crit, spacing):
