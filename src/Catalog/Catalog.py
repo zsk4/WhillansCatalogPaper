@@ -691,7 +691,7 @@ class Events:
         self.merged["ressum"] = sum_res
 
         event = np.zeros(len(self.merged["ressum"]))
-        thresh = self.merged["sum_res_avg"]  # Threshold choice here e.g, avg + std
+        thresh = self.merged["sum_res_avg"]  # Threshold choice here e.g, avg
         x_col_check = active_stas - 1  # Indexed at 0 so subtract 1
         for i in range(len(event)):
             nansum = 0
