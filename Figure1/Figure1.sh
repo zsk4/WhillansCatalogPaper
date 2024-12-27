@@ -13,7 +13,7 @@
 
 #############################
 ### CHANGEABLE PARAMETERS ###
-out=Figure1 #Output file name
+out=Figure1NoLabs #Output file name
 stations=Stations.txt #Station file name
 stationsTop=StationsTop.txt
 stationsBottom=StationsBottom.txt
@@ -82,7 +82,6 @@ vy=${background}/antarctic_ice_vel_phase_map_v01-VY.nc
 ### BEGIN PLOTTING ###
 gmt begin
 gmt set MAP_FRAME_TYPE plain
-#gmt set MAP_FRAME_PEN thinner,black
 gmt set MAP_FRAME_PEN=thinner,33/49/77
 gmt set MAP_TICK_PEN=33/49/77
 gmt set FONT_LABEL=33/49/77
@@ -100,23 +99,23 @@ gmt grdimage $moa -R$region -J$projection -C -Bnwse -Bxa25000 -Bya25000 --MAP_FR
 
 # LAKES HERE #
 # Lakes, from https://github.com/mrsiegfried/Siegfried2021-GRL/blob/main/figures/fig1-map/plotSiegfried2021map.sh
-echo 'plotting lake outlines - this takes a bit'
-h5ls ${lakes} | grep "Group" | awk '{print $1}' > groups
-while read g
-do
-	echo $g
-    # dump x and y values to separate files
-    h5dump -d /${g}/x -y -A 0 -b LE -o tmpx.bin -O ${lakes}
-    h5dump -d /${g}/y -y -A 0 -b LE -o tmpy.bin -O ${lakes}
-    gmt convert -bi1 tmpx.bin | tr 'NaN' '>' > tmpx.txt # turn nan separated to > separated
-    gmt convert -bi1 tmpy.bin > tmpy.txt
-    paste tmpx.txt tmpy.txt > lake.xy
-    
-    gmt psxy lake.xy -R$region -J$projection -Wthick,black -Gcornflowerblue
-    rm lake.xy tmpx.txt tmpy.txt tmpx.bin tmpy.bin
-done < groups
-rm groups
-printf "\ndone plotting lake outlines\n"
+#echo 'plotting lake outlines - this takes a bit'
+#h5ls ${lakes} | grep "Group" | awk '{print $1}' > groups
+#while read g
+#do
+#	echo $g
+#    # dump x and y values to separate files
+#    h5dump -d /${g}/x -y -A 0 -b LE -o tmpx.bin -O ${lakes}
+#    h5dump -d /${g}/y -y -A 0 -b LE -o tmpy.bin -O ${lakes}
+#    gmt convert -bi1 tmpx.bin | tr 'NaN' '>' > tmpx.txt # turn nan separated to > separated
+#    gmt convert -bi1 tmpy.bin > tmpy.txt
+#    paste tmpx.txt tmpy.txt > lake.xy
+#    
+#    gmt psxy lake.xy -R$region -J$projection -Wthick,black -Gcornflowerblue
+#    rm lake.xy tmpx.txt tmpy.txt tmpx.bin tmpy.bin
+#done < groups
+#rm groups
+#printf "\ndone plotting lake outlines\n"
 
 #Lat/Long lines
 gmt basemap -J$llprojection -R$region -Bxa10g10 -Bya1g1 -BWENS \
@@ -136,17 +135,17 @@ echo Grounding Line
 gmt psxy $gl -R$region -J$projection -W0.5p,gray90
 
 #Colorbar for ice velocity
-barwidth=`gmt math -Q ${figwidth} 10 DIV 0.25 MUL = `
+barwidth=`gmt math -Q ${figwidth} 10 DIV 0.28 MUL = `
 #First with transparent background
 gmt colorbar -C -R$region -J$projection -DjTR+w${barwidth}c+jTR+o1c/0.75c+h+ml \
--Bxa250f50+l"Ice Velocity [m a@+-1@+]" -F+gblack+p0.5p,black+c3p -t50 --FONT_ANNOT_PRIMARY=9p,white \
---FONT_LABEL=9p,white --MAP_ANNOT_OFFSET_PRIMARY=2p --MAP_TICK_PEN_PRIMARY=0.5p,white \
---MAP_TICK_LENGTH_PRIMARY=3p --MAP_FRAME_PEN=0.5p,white --MAP_LABEL_OFFSET=4p
+-Bxa250f50+l"Ice Velocity [m a@+-1@+]" -F+gblack+p0.5p,black+c3p -t50 --FONT_ANNOT_PRIMARY=20p,white \
+--FONT_LABEL=20p,white --MAP_ANNOT_OFFSET_PRIMARY=4p --MAP_TICK_PEN_PRIMARY=1.5p,white \
+--MAP_TICK_LENGTH_PRIMARY=5p --MAP_FRAME_PEN=1.5p,white --MAP_LABEL_OFFSET=8p
 #Again without background but not transparent
 gmt colorbar -C -R$region -J$projection -DjTR+w${barwidth}c+jTR+o1c/0.75c+h+ml \
--Bxa250f50+l"Ice Velocity [m a@+-1@+]" --FONT_ANNOT_PRIMARY=9p,white \
---FONT_LABEL=9p,white --MAP_ANNOT_OFFSET_PRIMARY=2p --MAP_TICK_PEN_PRIMARY=0.5p,white \
---MAP_TICK_LENGTH_PRIMARY=3p --MAP_FRAME_PEN=0.5p,white --MAP_LABEL_OFFSET=4p
+-Bxa250f50+l"Ice Velocity [m a@+-1@+]" --FONT_ANNOT_PRIMARY=20p,white \
+--FONT_LABEL=20p,white --MAP_ANNOT_OFFSET_PRIMARY=4p --MAP_TICK_PEN_PRIMARY=1.5p,white \
+--MAP_TICK_LENGTH_PRIMARY=5p --MAP_FRAME_PEN=1.5p,white --MAP_LABEL_OFFSET=8p
 
 #Scale Bar
 echo Scale Bar
@@ -167,11 +166,11 @@ EOF
 
 #Stations and Labels
 #echo Stations and Labels
-awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -R$region -J$projection -Si0.2c -G255 -W0.2p,black
-awk 'NR>1{print $1, $2}' ${stationsLA08} | gmt psxy -R$region -J$projection -Si0.2c -G33/49/77 -W0.2p,black
-awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -R$region -J$projection -Si0.2c -G160/56/32 -W0.2p,black
-awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/0.25c 
-awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/-0.25c 
+awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -R$region -J$projection -Si0.3c -G255 -W0.2p,black
+#awk 'NR>1{print $1, $2}' ${stationsLA08} | gmt psxy -R$region -J$projection -Si0.2c -G33/49/77 -W0.2p,black
+#awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -R$region -J$projection -Si0.2c -G160/56/32 -W0.2p,black
+#awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/0.25c 
+#awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/-0.25c 
 
 # GL Label
 gmt text -R$region -J$projection -F+a310+f9p,Helvetica,white <<EOF
@@ -239,10 +238,10 @@ gmt grdimage $vel -J${mprojection} -R$mgz+r -t40 -C -Blrbt
 gmt grdvector $vx $vy -R$mgz+r -J${mprojection} -Ix15 -Q0.2c+e@50 -Ggray@50 -W1p,gray@50  -S0.8c #-S2c
 gmt psxy $gl -J${mprojection} -R$mgz+r -W0.5p,gray90 -Blrbt
 
-awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -J${mprojection} -R$mgz+r -Si0.2c -G255 -W0.2p,black -Blrbt
-awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -J${mprojection} -R$mgz+r -Si0.2c -G160/56/32 -W0.2p,black -Blrbt
-awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZTop} | gmt pstext -J$mprojection -D0c/0.3c -F+j+f7p,Helvetica-Bold,white
-awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZBottom} | gmt pstext -J$mprojection -D0c/-0.3c -F+j+f7p,Helvetica-Bold,white
+awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -J${mprojection} -R$mgz+r -Si0.3c -G255 -W0.2p,black -Blrbt
+#awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -J${mprojection} -R$mgz+r -Si0.2c -G160/56/32 -W0.2p,black -Blrbt
+#awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZTop} | gmt pstext -J$mprojection -D0c/0.3c -F+j+f7p,Helvetica-Bold,white
+#awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZBottom} | gmt pstext -J$mprojection -D0c/-0.3c -F+j+f7p,Helvetica-Bold,white
 
 #Scale Bar
 echo Scale Bar

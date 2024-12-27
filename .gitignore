@@ -3,6 +3,8 @@
 # No data text files
 *no_data.txt
 *SquaresGMT.txt
+.pdf
+.pptx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

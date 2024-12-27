@@ -8,7 +8,7 @@
 
 #############################
 ### CHANGEABLE PARAMETERS ###
-out=Figure2 #Output file name
+out=Figure2Small #Output file name
 plotter=LeastSquaresGMT.txt # Plotting file name
 base=-0.05 # Lower Y-extent of plot
 top=0.6 # Upper Y-extent of plot
@@ -153,7 +153,7 @@ gmt set MAP_TICK_PEN=33/49/77
 gmt set FONT_LABEL=33/49/77
 gmt set FONT_ANNOT=33/49/77
 
-gmt basemap -R$region_trace -Bpya1f0.5+l"Station @[\Delta@[X (PS71) [m]" -BWS -Bpxa1Df6h+l"Date" -Yh+2.5c -JX26c/10c
+gmt basemap -R$region_trace -Bpya1f0.5+l"Station @[\Delta@[X (PS71) [m]" -BWS -Bpxa1Df6h+l"Date" -Yh+2.5c -JX19c/10c #JX26c/10c
 gmt set MAP_FRAME_PEN=160/56/32
 gmt set MAP_TICK_PEN=160/56/32
 gmt set FONT_LABEL=160/56/32

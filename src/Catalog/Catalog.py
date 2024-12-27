@@ -666,7 +666,9 @@ class Events:
             indices.append(index)
         return indices
 
-    def pick_events(self, sorted: pd.DataFrame, active_stas: int) -> np.ndarray:
+    def pick_events(
+        self, sorted: pd.DataFrame, active_stas: int, hr_off: int
+    ) -> np.ndarray:
         """Get a of indices of when stations turn on/off. Updates Events in place
 
         Parameters
@@ -675,6 +677,8 @@ class Events:
             Sorted list of onsets and offsets made by on_off_list
         active_stas: int
             Minimum required number of active stations to consider an event
+        hr_off: int
+            Number of hours to add to either side of an event
 
         Returns
         thresh: float
@@ -709,6 +713,17 @@ class Events:
                 and nansum < len(x_cols) - x_col_check
             ):  # Check at least two non-nan cols
                 event[i] = 1
+
+        # Add X hours to either side of picks
+        indices = int(hr_off * 3600 / 15)  # X hr * 60 min / 15 sec
+        temp_event = event.copy()
+        for i in range(len(event)):
+            if temp_event[i] == 1:
+                for j in range(1, indices):
+                    if i + j < len(event):
+                        event[i + j] = 1
+                    if i - j > 0:
+                        event[i - j] = 1
 
         self.merged["event"] = event
 
@@ -894,10 +909,13 @@ class Events:
         # Initial cull of catalog by removing all false events less than cull_time
         cull_time_catalog = []
         for event in catalog:
-            start = event.iloc[0]["time"]
-            end = event.iloc[-1]["time"]
-            if end - start > datetime.timedelta(minutes=cull_time):
-                cull_time_catalog.append(event)
+            if event is not None:
+                start = event.iloc[0]["time"]
+                end = event.iloc[-1]["time"]
+                start = datetime.datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+                end = datetime.datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+                if end - start > datetime.timedelta(minutes=cull_time):
+                    cull_time_catalog.append(event)
 
         # Second cull of catalog removing all events with min delta_x < cull_dist
         cull_dist_catalog = []
