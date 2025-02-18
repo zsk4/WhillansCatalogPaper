@@ -5,6 +5,8 @@
 *SquaresGMT.txt
 .pdf
 .pptx
+# Larged merged text file
+*2013.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

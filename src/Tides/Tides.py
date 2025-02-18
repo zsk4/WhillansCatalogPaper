@@ -44,7 +44,9 @@ class Tide:
         self.model = model
         self.model_loc = model_loc
 
-    def tidal_elevation(self, lons: list, lats: list, datetimes: list) -> xr.DataArray:
+    def tidal_elevation(
+        self, lons: list, lats: list, datetimes: list, consts=None
+    ) -> xr.DataArray:
         """
         Calculate the tidal elevation at the given locations and times. Adapted
         from pyTMD example: https://github.com/tsutterley/pyTMD/blob/main/notebooks/Plot%20Tide%20Forecasts.ipynb
@@ -59,13 +61,13 @@ class Tide:
             Latitudes for tide calculation
         datetimes : list
             Times for tide calculation
-
+        consts : list
+            List of constituents to use, defaults to all
         Returns
         -------
         tides : xarray.DataArray
             Tides [cm] at each location (lon, lat) and time (t).
         """
-
         # Convert dates to date since 01 Jan 1992 [The format pyTMD wants it in]
         years = np.array([date.year for date in datetimes])
         months = np.array([date.month for date in datetimes])
@@ -89,6 +91,7 @@ class Tide:
             grid=model.format,
         )
         c = constituents.fields
+
         DELTAT = np.zeros_like(tide_time)
         amp, ph, D = pyTMD.io.OTIS.interpolate_constants(
             np.atleast_1d(lons),
@@ -104,14 +107,21 @@ class Tide:
         cph = -1j * ph * np.pi / 180.0
         hc = amp * np.exp(cph)
 
+        # Cull c to just the constituents we need, k1, o1, m2, s2 by name
+        if consts is not None:
+            c = np.array(c)
+            c = c[np.isin(c, consts)]
+        print(c)
         if len(lons) > 1:
             tide_holder = []
             for i in range(len(datetimes)):
-                tide = self.tidal_elevation_map(tide_time[i], hc, c, DELTAT[i], model)
+                tide = self.tidal_elevation_map(
+                    tide_time[i], hc, c, DELTAT[i], model, consts
+                )
                 tide_holder.append(tide)
         else:
             tide_holder = self.tidal_elevation_time_series(
-                tide_time, hc, c, DELTAT, model
+                tide_time, hc, c, DELTAT, model, consts
             )
             tide_holder = np.atleast_2d(tide_holder).T
 
@@ -131,7 +141,7 @@ class Tide:
 
     @staticmethod
     def tidal_elevation_map(
-        tide_time: float, hc: list, c: list, delat: float, model: pyTMD.io.model
+        tide_time: float, hc: list, c: list, delat: float, model: pyTMD.io.model, consts
     ) -> np.ndarray:
         """Use pyTMD's map function if more lat long pairs than times:
 
@@ -158,16 +168,17 @@ class Tide:
         TIDE = pyTMD.predict.map(
             tide_time, hc, c, deltat=delat, corrections=model.format
         )
-        MINOR = pyTMD.predict.infer_minor(
-            tide_time, hc, c, deltat=delat, corrections=model.format
-        )
-        TIDE.data[:] += MINOR.data[:]
+        if consts is None:
+            MINOR = pyTMD.predict.infer_minor(
+                tide_time, hc, c, deltat=delat, corrections=model.format
+            )
+            TIDE.data[:] += MINOR.data[:]
         TIDE.data[:] *= 100.0  # Convert to cm
         return TIDE
 
     @staticmethod
     def tidal_elevation_time_series(
-        tide_time: list, hc: list, c: list, delat: float, model: pyTMD.io.model
+        tide_time: list, hc: list, c: list, delat: float, model: pyTMD.io.model, consts
     ):
         """Use pyTMD's time_series function if more lat long pairs than times:
 
@@ -192,10 +203,11 @@ class Tide:
         TIDE = pyTMD.predict.time_series(
             tide_time, hc, c, deltat=delat, corrections=model.format
         )
-        MINOR = pyTMD.predict.infer_minor(
-            tide_time, hc, c, deltat=delat, corrections=model.format
-        )
-        TIDE.data[:] += MINOR.data[:]
+        if consts is None:
+            MINOR = pyTMD.predict.infer_minor(
+                tide_time, hc, c, deltat=delat, corrections=model.format
+            )
+            TIDE.data[:] += MINOR.data[:]
         TIDE.data[:] *= 100.0  # Convert to cm
         return TIDE
 
