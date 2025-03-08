@@ -12,8 +12,8 @@ out=Figure2 #Output file name
 plotter=LeastSquaresGMT.txt # Plotting file name
 base=-0.05 # Lower Y-extent of plot
 top=0.6 # Upper Y-extent of plot
-grad_base=-1.5 # Lower Y-extent of 2nd derivative plot [in um/s^2]
-grad_top=1.5 # Upper Y-extent of 2nd derivative plot [in um/s^2]
+grad_base=-1.3 # Lower Y-extent of 2nd derivative plot [in um/s^2]
+grad_top=1.7 # Upper Y-extent of 2nd derivative plot [in um/s^2]
 emph_stas="GZ15 LA08" # List of stations to show in color
 # Colors from http://vrl.cs.brown.edu/color 
 emph_cols=("160/56/32" "33/49/77") # Colors corresponding to above stations
@@ -126,6 +126,14 @@ EOF
 		
 		echo $label | gmt text -R$region -N -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.1c
 		label="c."
+		
+		if [ $subplot_counter -eq 1 ]; then
+            gmt text -R$region -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.1c <<EOF
+			precursor
+EOF
+			echo "2013-03-13T02:50:00 0.2 0 2i" | gmt psxy -R$region -Sv1c+bt+et
+			echo "2013-03-13T02:50:00 0.2 0 2i 270 360" | gmt psxy -R$region -Sv1c+bt+et
+		fi
 	fi
 
 rm legend.txt

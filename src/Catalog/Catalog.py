@@ -491,6 +491,54 @@ class Picks:
             sta.zs = zs
             sta.times = times
 
+    def lls_detection_no_res(self, increment: int, slide: int) -> None:
+        """Like lls detection, but doesn't actually detect events to speed up Fig 5 script
+
+        Parameters
+        ----------
+        increment: int
+            Data points to perform the regression on
+        slide: int
+            Data points to slide the window each cyclewith pytest.raises(Exception) as e_info:
+        """
+
+        # Loop for each station z
+        for z, sta in enumerate(self.stas[:]):
+            name = sta.name
+            logger.info(f"Fake Linear Least Squares on {name}")
+            times = []
+            xs = []
+            ys = []
+            zs = []
+
+            # Make increment and slide match that for 15 second data
+            dividing_factor = sta.interpolation_time // 15
+            increment = int(increment // dividing_factor)
+            slide = int(slide // dividing_factor)
+
+            if increment % slide != 0:
+                raise Exception("Increment / Slide not an Integer")
+
+            # Loop over each start and end time
+            for st, en in zip(sta.starts, sta.ends):
+                # Get index of data at start and end times
+                start = sta.data.loc[sta.data["time"] == st].index[0]
+                end = sta.data.loc[sta.data["time"] == en].index[0]
+                length = end - start
+                if length != 0:
+                    time_arr = sta.data["time"].iloc[start:end].reset_index(drop=True)
+                    x_arr = sta.data["x"].iloc[start:end].reset_index(drop=True)
+                    y_arr = sta.data["y"].iloc[start:end].reset_index(drop=True)
+                    z_arr = sta.data["elevation"].iloc[start:end].reset_index(drop=True)
+                    xs.append(x_arr)
+                    ys.append(y_arr)
+                    zs.append(z_arr)
+                    times.append(time_arr)
+            sta.xs = xs
+            sta.ys = ys
+            sta.zs = zs
+            sta.times = times
+
     def merge(self) -> pd.DataFrame:
         """Make mega dataframe with all traces and Nan if station not operating
 
@@ -666,7 +714,9 @@ class Events:
             indices.append(index)
         return indices
 
-    def pick_events(self, sorted: pd.DataFrame, active_stas: int) -> np.ndarray:
+    def pick_events(
+        self, sorted: pd.DataFrame, active_stas: int, hr_off: int
+    ) -> np.ndarray:
         """Get a of indices of when stations turn on/off. Updates Events in place
 
         Parameters
@@ -675,6 +725,8 @@ class Events:
             Sorted list of onsets and offsets made by on_off_list
         active_stas: int
             Minimum required number of active stations to consider an event
+        hr_off: int
+            Number of hours to add to either side of an event
 
         Returns
         thresh: float
@@ -709,6 +761,17 @@ class Events:
                 and nansum < len(x_cols) - x_col_check
             ):  # Check at least two non-nan cols
                 event[i] = 1
+
+        # Add X hours to either side of picks
+        indices = int(hr_off * 3600 / 15)  # X hr * 60 min / 15 sec
+        temp_event = event.copy()
+        for i in range(len(event)):
+            if temp_event[i] == 1:
+                for j in range(1, indices):
+                    if i + j < len(event):
+                        event[i + j] = 1
+                    if i - j > 0:
+                        event[i - j] = 1
 
         self.merged["event"] = event
 
@@ -873,7 +936,7 @@ class Events:
         rev_catalog : list
             Catalog events (dataframes) that survived the culling
         """
-
+        print("Making Catalog")
         start_indices = []
         end_indices = []
         for i, event in enumerate(self.merged["event"]):
@@ -894,10 +957,15 @@ class Events:
         # Initial cull of catalog by removing all false events less than cull_time
         cull_time_catalog = []
         for event in catalog:
-            start = event.iloc[0]["time"]
-            end = event.iloc[-1]["time"]
-            if end - start > datetime.timedelta(minutes=cull_time):
-                cull_time_catalog.append(event)
+            if event is not None:
+                start = event.iloc[0]["time"]
+                end = event.iloc[-1]["time"]
+                if type(start) is str:
+                    start = datetime.datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+                if type(end) is str:
+                    end = datetime.datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+                if end - start > datetime.timedelta(minutes=cull_time):
+                    cull_time_catalog.append(event)
 
         # Second cull of catalog removing all events with min delta_x < cull_dist
         cull_dist_catalog = []

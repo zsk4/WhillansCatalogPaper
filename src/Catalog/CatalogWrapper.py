@@ -55,7 +55,7 @@ def full_catalog_run(
     picks.no_data_csv(2, sorted_list)
 
     merged = Catalog.Events(merged_df)
-    threshold = merged.pick_events(sorted_list, active_stas=2)
+    threshold = merged.pick_events(sorted_list, active_stas=2, hr_off=0)
     if plot:
         indices = merged.on_off_indices(sorted_list)
         merged.plot_picking(indices, threshold, num_plots=25)
