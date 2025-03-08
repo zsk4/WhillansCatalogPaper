@@ -13,7 +13,7 @@
 
 #############################
 ### CHANGEABLE PARAMETERS ###
-out=Figure1NoLabs #Output file name
+out=Figure1 #Output file name
 stations=Stations.txt #Station file name
 stationsTop=StationsTop.txt
 stationsBottom=StationsBottom.txt
@@ -57,7 +57,7 @@ mapsize=${figwidth}/${figheight}
 region=${xl}/${xh}/${yl}/${yh}
 
 #Load grids
-background=/mnt/d/Background #Folder with grids
+background=/mnt/c/Users/ZacharyKatz/Desktop/Research/Background #Folder with grids
 moa=${background}/moa750_2009_hp1_v1.1.tif #Mosaic of Antarctica
 gl=${background}/Antarctica_masks/scripps_antarctica_polygons_v1.shp #Grounding Line
 lakes=${background}/SiegfriedFricker2018-outlines.h5 #SiegfriedFricker2018-outlines
@@ -99,23 +99,23 @@ gmt grdimage $moa -R$region -J$projection -C -Bnwse -Bxa25000 -Bya25000 --MAP_FR
 
 # LAKES HERE #
 # Lakes, from https://github.com/mrsiegfried/Siegfried2021-GRL/blob/main/figures/fig1-map/plotSiegfried2021map.sh
-#echo 'plotting lake outlines - this takes a bit'
-#h5ls ${lakes} | grep "Group" | awk '{print $1}' > groups
-#while read g
-#do
-#	echo $g
-#    # dump x and y values to separate files
-#    h5dump -d /${g}/x -y -A 0 -b LE -o tmpx.bin -O ${lakes}
-#    h5dump -d /${g}/y -y -A 0 -b LE -o tmpy.bin -O ${lakes}
-#    gmt convert -bi1 tmpx.bin | tr 'NaN' '>' > tmpx.txt # turn nan separated to > separated
-#    gmt convert -bi1 tmpy.bin > tmpy.txt
-#    paste tmpx.txt tmpy.txt > lake.xy
-#    
-#    gmt psxy lake.xy -R$region -J$projection -Wthick,black -Gcornflowerblue
-#    rm lake.xy tmpx.txt tmpy.txt tmpx.bin tmpy.bin
-#done < groups
-#rm groups
-#printf "\ndone plotting lake outlines\n"
+echo 'plotting lake outlines - this takes a bit'
+h5ls ${lakes} | grep "Group" | awk '{print $1}' > groups
+while read g
+do
+	echo $g
+    # dump x and y values to separate files
+    h5dump -d /${g}/x -y -A 0 -b LE -o tmpx.bin -O ${lakes}
+    h5dump -d /${g}/y -y -A 0 -b LE -o tmpy.bin -O ${lakes}
+    gmt convert -bi1 tmpx.bin | tr 'NaN' '>' > tmpx.txt # turn nan separated to > separated
+    gmt convert -bi1 tmpy.bin > tmpy.txt
+    paste tmpx.txt tmpy.txt > lake.xy
+    
+    gmt psxy lake.xy -R$region -J$projection -Wthick,black -Gcornflowerblue
+    rm lake.xy tmpx.txt tmpy.txt tmpx.bin tmpy.bin
+done < groups
+rm groups
+printf "\ndone plotting lake outlines\n"
 
 #Lat/Long lines
 gmt basemap -J$llprojection -R$region -Bxa10g10 -Bya1g1 -BWENS \
@@ -167,10 +167,10 @@ EOF
 #Stations and Labels
 #echo Stations and Labels
 awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -R$region -J$projection -Si0.3c -G255 -W0.2p,black
-#awk 'NR>1{print $1, $2}' ${stationsLA08} | gmt psxy -R$region -J$projection -Si0.2c -G33/49/77 -W0.2p,black
-#awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -R$region -J$projection -Si0.2c -G160/56/32 -W0.2p,black
-#awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/0.25c 
-#awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/-0.25c 
+awk 'NR>1{print $1, $2}' ${stationsLA08} | gmt psxy -R$region -J$projection -Si0.3c -G33/49/77 -W0.2p,black
+awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -R$region -J$projection -Si0.3c -G160/56/32 -W0.2p,black
+awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/0.25c 
+awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/-0.25c 
 
 # GL Label
 gmt text -R$region -J$projection -F+a310+f9p,Helvetica,white <<EOF
@@ -239,9 +239,9 @@ gmt grdvector $vx $vy -R$mgz+r -J${mprojection} -Ix15 -Q0.2c+e@50 -Ggray@50 -W1p
 gmt psxy $gl -J${mprojection} -R$mgz+r -W0.5p,gray90 -Blrbt
 
 awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -J${mprojection} -R$mgz+r -Si0.3c -G255 -W0.2p,black -Blrbt
-#awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -J${mprojection} -R$mgz+r -Si0.2c -G160/56/32 -W0.2p,black -Blrbt
-#awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZTop} | gmt pstext -J$mprojection -D0c/0.3c -F+j+f7p,Helvetica-Bold,white
-#awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZBottom} | gmt pstext -J$mprojection -D0c/-0.3c -F+j+f7p,Helvetica-Bold,white
+awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -J${mprojection} -R$mgz+r -Si0.3c -G160/56/32 -W0.2p,black -Blrbt
+awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZTop} | gmt pstext -J$mprojection -D0c/0.3c -F+j+f7p,Helvetica-Bold,white
+awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZBottom} | gmt pstext -J$mprojection -D0c/-0.3c -F+j+f7p,Helvetica-Bold,white
 
 #Scale Bar
 echo Scale Bar

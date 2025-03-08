@@ -1,0 +1,21 @@
+American Geophysical Union (AGU) 2024
+Poster Image/Script File Locations
+Zachary Katz [zachary_katz@mines.edu]
+
+Title
+Baby Blaster 		| Desktop/Research/Logos/MGL_Logo.png
+Mines Logo			| Desktop/Research/Logos/MinesBlue_Logo.png
+NSF Logo			| Desktop/Research/Logos/NSF_Logo.png
+
+1
+Events on Tide		| Desktop/WhillansCatPaper/WhillansCatalogPaper/AGU2024/[EventTimeseries.ipynb, XXX.png]
+Rolling Sum			| Desktop/WhillansCatPaper/WhillansCatalogPaper/AGU2024/[EventTimeseries.ipynb, XXX.png]
+
+2
+Spectrogram			| Desktop/WhillansCatPaper/WhillansCatalogPaper/AGU2024/[EventTimeseries.ipynb, XXX.png]
+Basin Tide Map		| Desktop/WhillansCatPaper/WhillansCatalogPaper/AGU2024/[EventTimeseries.ipynb, XXX.png]
+Tide Comparison		| Desktop/WhillansCatPaper/WhillansCatalogPaper/AGU2024/[EventTimeseries.ipynb, XXX.png]
+
+3
+PPP Reprocessing	| Desktop/WhillansCatPaper/WhillansCatalogPaper/Figure2/[Figure2AGU2024.sh, Figure2AGU2024.png]
+Map					| Desktop/WhillansCatPaper/WhillansCatalogPaper/Figure1/[Figure1AGU2024.sh, Figure1AGU2024.png]
