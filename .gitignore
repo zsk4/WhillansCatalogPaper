@@ -7,7 +7,10 @@
 .pptx
 # Larged merged text file
 *2013.txt
+
+# Large figs and movies
 .pdf
+.mp4
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
