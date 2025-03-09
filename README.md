@@ -2,7 +2,7 @@
 
 Code used to process GNSS data and create figures in PAPER NAME. Data associated with this repository is available at DOI. 
 > [!CAUTION]  
-> This repository is still activly undergoing revisions in preperation for paper publication
+> This repository is still actively undergoing revisions in preperation for paper publication
 
 # Quickstart
 1. Set up the included conda environment whillanscatalogpaper.yml
@@ -11,12 +11,14 @@ Code used to process GNSS data and create figures in PAPER NAME. Data associated
 ```bash
 conda env create -f environment.yml
 ```
-2. Activate the Kernel
+2. Activate the conda environment
 ```bash
 conda activate whillanscatalogpaper
 ```
 3. Download the data [Default file names given in brackets]
+   
 GNSS: DOI
+
 Scripps Antarctic Grounding Line: .shp file: [dataset page](https://doi.pangaea.de/10.1594/PANGAEA.819147), [direct download](https://doi.pangaea.de/10013/epic.42133.d001)
 [scripps_antarctica_polygons_v1.shp]
 
@@ -35,10 +37,11 @@ MODIS Mosaic of Antarctica 2009, 750 m, hp1, v1.1, geotiff: [dataset page](https
 4. Run the cells in WhillansCatalog.ipynb to make the catalog.
 > [!WARNING]  
 > Set user-defined variables in first cell
+>
 > Change the data paths to match your data locations
 5. Follow the instructions in each Figure/Table folder to make the figure or Table
 6. Run CatalogComparison.ipynb to perform the comparison to the hand-picked catalog 
-from Siegfried et al., 2016.
+from [Siegfried et al., 2016](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2016GL067758).
 7. Use the CatalogViewer.ipynb utility to view specific events
 
 # Citation
