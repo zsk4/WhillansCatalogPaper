@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# March 08 2025 
+# Paper Version
+
 #Plot locations of GNSS stations.
 #Currently uses Stations.txt, which was created by station_location.ipynb
 #Stations.txt has all gps stations, but locations are taken at different years for each.
