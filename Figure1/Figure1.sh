@@ -24,6 +24,7 @@ stationsGZTop=StationsGZTop.txt
 stationsGZBottom=StationsGZBottom.txt
 stationsGZ15=GZ15.txt
 stationsLA08=LA08.txt
+stationsGZ05_GZ20=GZ05_GZ20.txt
 
 #Set region in PS71=3031
 xl=-310000
@@ -172,6 +173,7 @@ EOF
 awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -R$region -J$projection -Si0.3c -G255 -W0.2p,black
 awk 'NR>1{print $1, $2}' ${stationsLA08} | gmt psxy -R$region -J$projection -Si0.3c -G33/49/77 -W0.2p,black
 awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -R$region -J$projection -Si0.3c -G160/56/32 -W0.2p,black
+awk 'NR>1{print $1, $2}' ${stationsGZ05_GZ20} | gmt psxy -R$region -J$projection -Si0.3c -G128/128/128 -W0.2p,black
 awk 'NR>1{print $1, $2, $3, $4}' ${stationsTop} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/0.25c 
 awk 'NR>1{print $1, $2, $3, $4}' ${stationsBottom} | gmt pstext -J$projection -F+j+f6p,Helvetica-Bold,white -D0c/-0.25c 
 
@@ -243,6 +245,7 @@ gmt psxy $gl -J${mprojection} -R$mgz+r -W0.5p,gray90 -Blrbt
 
 awk 'NR>1{print $1, $2}' ${stations} | gmt psxy -J${mprojection} -R$mgz+r -Si0.3c -G255 -W0.2p,black -Blrbt
 awk 'NR>1{print $1, $2}' ${stationsGZ15} | gmt psxy -J${mprojection} -R$mgz+r -Si0.3c -G160/56/32 -W0.2p,black -Blrbt
+awk 'NR>1{print $1, $2}' ${stationsGZ05_GZ20} | gmt psxy -J${mprojection} -R$mgz+r -Si0.3c -G128/128/128 -W0.2p,black -Blrbt
 awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZTop} | gmt pstext -J$mprojection -D0c/0.3c -F+j+f7p,Helvetica-Bold,white
 awk 'NR>1{print $1, $2, $3, $4}' ${stationsGZBottom} | gmt pstext -J$mprojection -D0c/-0.3c -F+j+f7p,Helvetica-Bold,white
 

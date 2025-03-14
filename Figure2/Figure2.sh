@@ -129,13 +129,13 @@ EOF
 		echo $label | gmt text -R$region -N -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.1c
 		label="c."
 		
-		if [ $subplot_counter -eq 1 ]; then
-            gmt text -R$region -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.1c <<EOF
-			precursor
-EOF
-			echo "2013-03-13T02:50:00 0.2 0 2i" | gmt psxy -R$region -Sv1c+bt+et
-			echo "2013-03-13T02:50:00 0.2 0 2i 270 360" | gmt psxy -R$region -Sv1c+bt+et
-		fi
+		#if [ $subplot_counter -eq 1 ]; then
+        #    gmt text -R$region -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.1c <<EOF
+		#	precursor
+#EOF
+		#	echo "2013-03-13T02:50:00 0.2 0 2i" | gmt psxy -R$region -Sv1c+bt+et
+		#	echo "2013-03-13T02:50:00 0.2 0 2i 270 360" | gmt psxy -R$region -Sv1c+bt+et
+		#fi
 	fi
 
 rm legend.txt
