@@ -13,6 +13,7 @@
 
 out=FigureS1 #Output file name
 stations=sta_uptime_input_fixed.txt #Station file name
+red_stas=sta_uptime_red.txt # Red coloring
 yannot=Yaxisannot.txt #Annotation file name
 xannot=Xaxisannot.txt #Annotation file name
 ### CHANGEABLE PARAMETERS ###
@@ -37,6 +38,7 @@ gmt subplot begin 1x1 -Fs20c/10c -M.2c
 gmt subplot set 0,0
 gmt basemap -R$region -Bpxf3O -Bsx1Y -Bsxg1Y -Bpyc${yannot}+l"Station" -BWS #+t"Station Uptime"
 awk 'NR>1{print $2, $4, $1}' $stations | gmt psxy -R$region -SB0.1c+b -G33/49/77
+awk 'NR>1{print $2, $4, $1}' $red_stas | gmt psxy -R$region -SB0.1c+b -G160/56/32
 
 #awk 'NR>1{print $3, $4}' $Stations | gmt text 
 gmt subplot end
