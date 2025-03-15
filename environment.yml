@@ -1,0 +1,16 @@
+name: whillanscatalogpaper
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - astropy
+  - cmap
+  - matplotlib
+  - pandas
+  - pyproj
+  - pytmd
+  - rasterio
+  - scipy
+  - shapely
+  - timescale
+  - xarray
