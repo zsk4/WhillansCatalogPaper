@@ -20,17 +20,10 @@ jobs:
       # Actions are github's predefined task
       # View on https://github.com/marketplace/actions/checkout
       # @vX uses version X of the action
-    - name : Checkout code
-      uses : actions/checkout@v2
-      
-    #- name : Install Dependencies
-    #  run : pip install numpy
-
-    - name : Install Dependencies
-      run : pip install .[test]
-
-    - name: Test package
-      run: coverage run -m pytest -m "not slow"
-
-    - name: Coverage Report
-      run: coverage report --show-missing
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - run: pip install .[test]
+    - run: coverage run -m pytest -m "not slow"
+    - run: coverage report --show-missing
