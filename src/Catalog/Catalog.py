@@ -885,7 +885,7 @@ class Events:
                             ),
                             color=colors[j],
                         )
-                    ax1.set_ylabel("Station $\Delta$X [meters]", size=20, color="gray")
+                    ax1.set_ylabel(r"Station $\Delta$X [meters]", size=20, color="gray")
                     ax1.set_xlabel("Date", size=20)
                     ax2 = ax1.twinx()
                     rd = (160 / 255, 56 / 255, 32 / 255)
