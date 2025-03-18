@@ -1,6 +1,6 @@
 # WhillansCatalogPaper
 
-Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. GNSS Data associated with this repository is available at Zenodo DOI. 
+Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. GNSS Data associated with this repository is available to reviewers and will be made public before publication. 
 > [!WARNING]  
 > This repository is still actively undergoing revisions in preparation for paper publication
 
@@ -19,7 +19,7 @@ python -m ipykernel install --user --name whillanscatalogpaper
 2. Download the data [Default file names given in brackets]
 GNSS
 .evt files
-Zenodo DOI
+DOI Forthcoming
 
 Scripps Antarctic Grounding Line 
 .shp file: 
@@ -52,7 +52,7 @@ from [Siegfried et al., 2016](https://doi.org/10.1002/2016GL067758)
 6. Use the CatalogViewer.ipynb utility to view specific events
 
 ## Notes
-1. GNSS RINEX data and kinematic positions are also available at Zenodo DOI.
+1. GNSS RINEX data and kinematic positions are also available at DOI Forthcoming
 2. If you have questions, please leave a GitHub issue or email me.
 
 ## Citation
