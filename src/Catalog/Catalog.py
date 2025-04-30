@@ -558,6 +558,7 @@ class Picks:
             times = list(itertools.chain.from_iterable(sta.times))
             x_col = list(itertools.chain.from_iterable(sta.xs))
             y_col = list(itertools.chain.from_iterable(sta.ys))
+            z_col = list(itertools.chain.from_iterable(sta.zs))
             res_col = list(itertools.chain.from_iterable(sta.residuals))
             res_avg_col = list(itertools.chain.from_iterable(sta.residual_avg))
 
@@ -566,6 +567,7 @@ class Picks:
                     "time": times,
                     sta.name + "x": x_col,
                     sta.name + "y": y_col,
+                    sta.name + "z": z_col,
                     sta.name + "res": res_col,
                     sta.name + "res_avg": res_avg_col,
                 }
