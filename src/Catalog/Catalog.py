@@ -585,12 +585,19 @@ class Picks:
 
         merged.sort_values(by="time", ignore_index=True, inplace=True)
 
-        if "la00res" in merged.columns:
+        if "la09res" in merged.columns:
             merged["la09res"] = merged["la09res"].interpolate(method="linear", limit=1)
             merged["la09res_avg"] = merged["la09res_avg"].interpolate(
                 method="linear", limit=1
             )
             merged["la09x"] = merged["la09x"].interpolate(method="linear", limit=1)
+
+        if "la02res" in merged.columns:
+            merged["la02res"] = merged["la02res"].interpolate(method="linear", limit=1)
+            merged["la02res_avg"] = merged["la02res_avg"].interpolate(
+                method="linear", limit=1
+            )
+            merged["la02x"] = merged["la02x"].interpolate(method="linear", limit=1)
         return merged
 
     def on_off_list(self) -> pd.DataFrame:
@@ -1096,7 +1103,7 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
         or "2014_30Sec" in years
     ):
         interpolation_time = 30
-    elif sta == "la09" and ("2010_30sec" in years):
+    elif sta == "la02" and ("2010_30sec" in years):
         interpolation_time = 30
 
     return interpolation_time, run
