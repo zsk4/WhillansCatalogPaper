@@ -510,6 +510,8 @@ class Picks:
             xs = []
             ys = []
             zs = []
+            residuals = []
+            residual_avg = []
 
             # Make increment and slide match that for 15 second data
             dividing_factor = sta.interpolation_time // 15
@@ -534,10 +536,14 @@ class Picks:
                     ys.append(y_arr)
                     zs.append(z_arr)
                     times.append(time_arr)
+                    residuals.append(x_arr)
+                    residual_avg.append(x_arr)
             sta.xs = xs
             sta.ys = ys
             sta.zs = zs
             sta.times = times
+            sta.residuals = residuals  # Fake residuals
+            sta.residual_avg = residual_avg  # Fake residual averages
 
     def merge(self) -> pd.DataFrame:
         """Make mega dataframe with all traces and Nan if station not operating
