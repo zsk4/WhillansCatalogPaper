@@ -148,6 +148,9 @@ class Datastream:
                                         index=ind_data.index[::-1]
                                     )
                                 data = pd.concat([data, ind_data], ignore_index=True)
+                            elif gps.endswith(".llh"):
+                                ind_data = self.load0304(f"{folder.path}/{gps}", year)
+                                data = pd.concat([data, ind_data], ignore_index=True)
         return data
 
     def load(self, file: str) -> Tuple[pd.DataFrame, bool]:
@@ -269,6 +272,44 @@ class Datastream:
             data["dist"] = np.sqrt((data["x"] - x0) ** 2 + (data["y"] - y0) ** 2)
 
         return data, flip
+
+    def load0304(self, file: str, year: str) -> pd.DataFrame:
+        """
+        Load processed 0304 text file into pandas table.
+
+        Parameters
+        file - .llh file from Whillans GNSS experiment [string]
+        year - Year of data used to set time origin [string]
+
+        Returns
+        data - Pandas DataFrame with the following columns, extracted from file
+            longitude - Geodetic longitude
+            latitude - Geodetic latitude
+            elevation - Elevation
+            time - Time as datetime object
+            day_of_year - Time as julian day
+            x - Antarctic Polar Stereographic x
+            y - Antarctic Polar Stereographic y
+            dist - Euclidian distance from starting position in meters
+        """
+        data = pd.DataFrame()
+        d = pd.read_csv(file, sep="\s+", header=None)
+        d.columns = pd.Index(
+            ["decimalday", "lat", "lon1", "z", "lon", "delX", "delY", "delZ"]
+        )
+
+        data["longitude"] = d["lon"]
+        data["latitude"] = d["lat"]
+        data["elevation"] = d["z"]
+        # Year is GPS200X so just get last 4 char
+        data["time"] = pd.to_datetime(
+            d["decimalday"], unit="D", origin=pd.Timestamp(f"{year}-01-01")
+        )
+        data["time"] = data["time"].dt.round("5s")
+        data["day_of_year"] = d["decimalday"]
+        data["x"], data["y"] = ll2xy(d["lon"], d["lat"])
+
+        return data
 
     def interpolate(
         self,
@@ -415,10 +456,10 @@ class Picks:
 
             # Make increment and slide match that for 15 second data
             dividing_factor = sta.interpolation_time // 15
+            dividing_factor = 1
             increment = int(increment // dividing_factor)
             slide = int(slide // dividing_factor)
             inc_slide = int(increment // slide)
-
             if increment % slide != 0:
                 raise Exception("Increment / Slide not an Integer")
 
@@ -1111,6 +1152,8 @@ def set_interpolation_time(sta, years) -> Tuple[int, bool]:
         interpolation_time = 30
     elif sta == "la02" and ("2010_30sec" in years):
         interpolation_time = 30
+    elif ("2003" in years) or ("2004" in years):
+        interpolation_time = 60 * 5
 
     return interpolation_time, run
 
@@ -1183,6 +1226,6 @@ def _derivative(time, x_col, order, crit, spacing):
 
     # 1st derivative
     b, a = scipy.signal.butter(order, crit)
-    filtered = scipy.signal.filtfilt(b, a, y_data, padlen=50)
+    filtered = scipy.signal.filtfilt(b, a, y_data, padlen=20)
     grad = np.gradient(filtered, spacing)
     return grad
