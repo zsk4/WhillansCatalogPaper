@@ -1,7 +1,7 @@
 Figures 3,4,S3,S4,S5,S8,S9,S10 [FigureX.png, FigureSX.png]
 
-March 08 2025
-Paper Version
+27 June 2025
+Paper Version R1
 
 Requires input files
 AllEventStartTime_{min_stas}stas.txt, created by ../WhillansCatalog.ipynb

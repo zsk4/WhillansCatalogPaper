@@ -1,7 +1,7 @@
 Figure 1 [Figure1.png]
 
-08 March 2025
-Paper Version
+27 June 2025
+Paper R1
 
 Requirements:
 Figure1.sh
