@@ -12,7 +12,7 @@
 ### CHANGEABLE PARAMETERS ###
 
 out=FigureS1 #Output file name
-stations=sta_uptime_input_fixed.txt #Station file name
+stations=sta_uptime_input.txt #Station file name
 red_stas=sta_uptime_red.txt # Red coloring
 yannot=Yaxisannot.txt #Annotation file name
 xannot=Xaxisannot.txt #Annotation file name
