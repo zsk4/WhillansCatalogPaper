@@ -150,7 +150,7 @@ st=$(awk 'NR>1{print $1"T"$2}' $plotter | head -n 1)
 ed=$(awk 'NR>1{print $1"T"$2}' $plotter | tail -n 1)
 region_res=$st/$ed/-1/20
 region_trace=$st/$ed/-1/5
-region_event=$st/$ed/0.5/1.02
+region_event=$st/$ed/0.5/1.05
 
 gmt set FONT_LABEL 16p
 gmt set FONT_ANNOT_PRIMARY 16p
@@ -190,15 +190,15 @@ done
 
 echo "Plot Residuals"
 awk 'NR>1{print $1"T"$2, $(NF - 2)}' $plotter | gmt psxy -R$region_res -W1p,160/56/32
-awk 'NR>1{print $1"T"$2, $NF}' $plotter | gmt psxy -R$region_res -W1p,237/179/165
+awk 'NR>1{print $1"T"$2, $NF}' $plotter | gmt psxy -R$region_res -W1p,135/158/195
 awk 'NR>1{print $1"T"$2, $(NF - 1)}' $plotter | gmt psxy -R$region_event -gy0.1 -W4p,33/49/77
 
-gmt text -R$region_res -F+f18,Helvetica,237/179/165 <<EOF
+gmt text -R$region_res -F+f18,Helvetica,135/158/195 <<EOF
 2013-01-26T04:00:00 2 Threshold
 EOF
 
 gmt text -R$region_res -F+f18,Helvetica,33/49/77 <<EOF
-2013-01-25T06:00:00 18 Events
+2013-01-25T06:00:00 19 Events
 EOF
 
 echo a. | gmt text -N -R$region_res -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.2c/0.1c

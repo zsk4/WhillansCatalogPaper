@@ -1,7 +1,7 @@
 Figure 2 [Figure2.png]
 
-March 08 2025
-Paper Version
+27 June 2025
+Paper R1
 
 Requires 
 ../Events_{min_stas}stas/{year}_{year}events_2stas/{event}, created by WhillansCatalog.ipynb
