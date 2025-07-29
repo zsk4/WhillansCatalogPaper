@@ -1,6 +1,6 @@
 # WhillansCatalogPaper
 
-Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. GNSS Data associated with this repository is available to reviewers and will be made public before publication. 
+Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. GNSS Data associated with this repository is available to reviewers and will be made public before publication.
 > [!WARNING]  
 > This repository is still actively undergoing revisions in preparation for paper publication
 
@@ -10,7 +10,7 @@ Code used to process GNSS data and create figures in Katz, Siegfried, and Padman
 [Generic Mapping Tools (GMT)](https://docs.generic-mapping-tools.org/dev/install.html)
 
 ## Quickstart
-1. Set up the included conda environment environment.yml, activate the environment, and add the environment to Jupyter as a kernel.
+1. Set up the included conda environment environment.yml, activate the environment, and add the environment to Jupyter as a kernel. Support for uv forthcoming.
 ```bash
 conda env create -f environment.yml
 conda activate whillanscatalogpaper
@@ -20,7 +20,7 @@ python -m ipykernel install --user --name whillanscatalogpaper
 2. Download the data [Default file names given in brackets]
 
 GNSS
-.evt files
+.pos files
 DOI Forthcoming
 
 **Scripps Antarctic Grounding Line** \
@@ -45,6 +45,7 @@ gmt grdmath ${vel}?VX 2 POW ${vel}?VY 2 POW ADD SQRT 1000 DIV = ${vel}-vmag.nc
 
 3. Run the cells in WhillansCatalog.ipynb to make the catalog
 > [!IMPORTANT]  
+> This step is not required if you are not changing our processing steps and just require the output .evt files, which are available [here](https://doi.org/10.5281/zenodo.15032116).
 > Change the paths in the first cell of the notebook to match your data paths.
 > 
 > Set user-defined variables in the first cell of the notebook.
@@ -54,8 +55,9 @@ from [Siegfried et al., 2016](https://doi.org/10.1002/2016GL067758)
 6. Use the CatalogViewer.ipynb utility to view specific events
 
 ## Notes
-1. GNSS RINEX data and kinematic positions are also available at DOI Forthcoming
-2. If you have questions, please leave a GitHub issue or email me.
+1. GNSS RINEX data are available at DOI Forthcoming.
+2. Pre-run .evt files made from WhillansCatalog.ipynb, are available [here](https://doi.org/10.5281/zenodo.15032116)
+3. If you have questions, please leave a GitHub issue or email me.
 
 ## Citation
 If you use code from this repository, please cite both the publication and the code.
