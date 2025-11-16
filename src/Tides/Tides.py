@@ -91,17 +91,17 @@ class Tide:
             grid=model.format,
         )
         c = constituents.fields
-
         DELTAT = np.zeros_like(tide_time)
         amp, ph, D = pyTMD.io.OTIS.interpolate_constants(
             np.atleast_1d(lons),
             np.atleast_1d(lats),
             constituents,
-            model.projection,
             type=model.type,
             method="spline",
             extrapolate=True,
         )
+        print(amp)
+        print(ph)
 
         # Complex phase and constituent oscillation
         cph = -1j * ph * np.pi / 180.0
