@@ -1145,7 +1145,9 @@ def event_start_time(folders: list, name: str, name_doc: str) -> None:
         for x_col in x_cols:
             if not (np.isnan(event[x_col].iloc[0]) or np.isnan(event[x_col].iloc[-1])):
                 grad = _derivative(event["time"], event[x_col], 4, 0.1, 15)
-                grad2 = _derivative(event["time"], grad, 4, 0.05, 15)
+                grad2 = _derivative(
+                    event["time"], grad, 4, 0.05, 15
+                )  # Note 0.05/15 sec between sample gives 0.003 Hz ~ 5 min period for filter
                 grad2s.append(grad2)
         avg_grad2s.append(np.nanmean(grad2s, axis=0))
     data["grad2"] = avg_grad2s
