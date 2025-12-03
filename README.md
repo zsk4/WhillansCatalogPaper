@@ -1,6 +1,6 @@
 # WhillansCatalogPaper
 
-Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. GNSS Data associated with this repository is available to reviewers and will be made public before publication.
+Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. 
 > [!WARNING]  
 > This repository is still actively undergoing revisions in preparation for paper publication
 
@@ -19,9 +19,10 @@ python -m ipykernel install --user --name whillanscatalogpaper
 
 2. Download the data [Default file names given in brackets]
 
-GNSS
-.pos files
-DOI Forthcoming
+**GNSS**
+.pos files \
+[dataset_page](https://doi.org/10.5281/zenodo.15412745)
+[SSSSJJJ0.pos], where SSSS is the alphanumeric station name (e.g., GZ20) and JJJ is the julian day. Years are given in the files.
 
 **Scripps Antarctic Grounding Line** \
 .shp file: \
@@ -55,10 +56,13 @@ from [Siegfried et al., 2016](https://doi.org/10.1002/2016GL067758)
 6. Use the CatalogViewer.ipynb utility to view specific events
 
 ## Notes
-1. GNSS RINEX data are available at DOI Forthcoming.
-2. Pre-run .evt files made from WhillansCatalog.ipynb, are available [here](https://doi.org/10.5281/zenodo.15032116)
+1. GNSS RINEX data for stations SLW1, WS04, and WS05 are available at [Zenodo](https://doi.org/10.5281/zenodo.15412745). RINEX data for all other stations
+2. Pre-run .evt files made from WhillansCatalog.ipynb, are also available on [Zenodo](https://doi.org/10.5281/zenodo.15032116).
 3. If you have questions, please leave a GitHub issue or email me.
 
 ## Citation
 If you use code from this repository, please cite both the publication and the code.
-If you use data from this repository, please cite both the publication and the data.
+If you use data from the linked [Zenodo](https://doi.org/10.5281/zenodo.15032116) repository, please cite both the publication and the data.
+
+###Publication Citation Forthcoming
+
