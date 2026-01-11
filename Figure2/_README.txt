@@ -3,6 +3,9 @@ Figure 2 [Figure2.png]
 27 June 2025
 Paper R1
 
+28 December 2025
+Updated fonts for paper publication.
+
 Requires 
 ../Events_{min_stas}stas/{year}_{year}events_2stas/{event}, created by WhillansCatalog.ipynb
 

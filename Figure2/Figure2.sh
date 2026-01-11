@@ -124,7 +124,9 @@ EOF
 		gmt set FONT_ANNOT_PRIMARY 15p
 		date=${st%%T*} 
 		gmt basemap -R$region -Bpya0.2f0.1+l"Station @[\Delta@[X (PS71) [m]" -BWS -Bpxa1Hf10m+l"Time (${date}) [UTC]"
-		gmt basemap -R$region_grad -Bpya0.4f0.2+l"@[\Sigma@[ 2nd Derivative [@[\mu m/s^2@[]" -BE
+		#gmt basemap -R$region_grad -Bpya0.4f0.2+l"@[\Sigma@[ 2nd Derivative [@[\mu m/s^2@[]" -BE
+		#gmt basemap -R$region_grad -Bpya0.4f0.2+l"@[\Sigma@] 2nd Derivative [@~m@~m/s@+2@+]" -BE
+		gmt basemap -R$region_grad -Bpya0.4f0.2+l"@~S@~ 2nd Derivative [@~m@~m/s@+2@+]" -BE
 		
 		echo $label | gmt text -R$region -N -F+cTL+f16,Helvetica-Bold,33/49/77 -D0.1c
 		label="c."
@@ -194,7 +196,7 @@ awk 'NR>1{print $1"T"$2, $NF}' $plotter | gmt psxy -R$region_res -W1p,135/158/19
 awk 'NR>1{print $1"T"$2, $(NF - 1)}' $plotter | gmt psxy -R$region_event -gy0.1 -W4p,33/49/77
 
 gmt text -R$region_res -F+f18,Helvetica,135/158/195 <<EOF
-2013-01-26T04:00:00 2 Threshold
+2013-01-26T04:00:00 1.75 Threshold
 EOF
 
 gmt text -R$region_res -F+f18,Helvetica,33/49/77 <<EOF

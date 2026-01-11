@@ -1,8 +1,7 @@
 # WhillansCatalogPaper
 
-Code used to process GNSS data and create figures in Katz, Siegfried, and Padman, 2025, currently in review. 
-> [!WARNING]  
-> This repository is still actively undergoing revisions in preparation for paper publication
+Code used to process GNSS data and create figures in  
+Katz, Z. S., Siegfried, M. R., & Padman, L. (2026). Slip-event timing and ice velocity vary at long-period ocean tidal frequencies at Whillans Ice Plain, West Antarctica. Journal of Geophysical Research: Earth Surface, 131, e2025JF008770. [https://doi.org/10.1029/2025JF008770] 
 
 ## Requirements
 [Conda](https://www.anaconda.com/docs/getting-started/miniconda/install)
@@ -56,13 +55,13 @@ from [Siegfried et al., 2016](https://doi.org/10.1002/2016GL067758)
 6. Use the CatalogViewer.ipynb utility to view specific events
 
 ## Notes
-1. GNSS RINEX data for stations SLW1, WS04, and WS05 are available at [Zenodo](https://doi.org/10.5281/zenodo.15412745). RINEX data for all other stations
+1. GNSS RINEX data for stations SLW1, WS04, and WS05 are available at [Zenodo](https://doi.org/10.5281/zenodo.15412745). RINEX data for all other stations is available at [EarthScope](https://www.unavco.org/data/doi/10.7283/YGE1-EF68)
 2. Pre-run .evt files made from WhillansCatalog.ipynb, are also available on [Zenodo](https://doi.org/10.5281/zenodo.15032116).
 3. If you have questions, please leave a GitHub issue or email me.
 
 ## Citation
 If you use code from this repository, please cite both the publication and the code.
+
 If you use data from the linked [Zenodo](https://doi.org/10.5281/zenodo.15032116) repository, please cite both the publication and the data.
 
 ###Publication Citation Forthcoming
-
