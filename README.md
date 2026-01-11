@@ -1,7 +1,8 @@
 # WhillansCatalogPaper
 
 Code used to process GNSS data and create figures in  
-Katz, Z. S., Siegfried, M. R., & Padman, L. (2026). Slip-event timing and ice velocity vary at long-period ocean tidal frequencies at Whillans Ice Plain, West Antarctica. Journal of Geophysical Research: Earth Surface, 131, e2025JF008770. [https://doi.org/10.1029/2025JF008770] 
+
+>Katz, Z. S., Siegfried, M. R., & Padman, L. (2026). Slip-event timing and ice velocity vary at long-period ocean tidal frequencies at Whillans Ice Plain, West Antarctica. Journal of Geophysical Research: Earth Surface, 131, e2025JF008770. https://doi.org/10.1029/2025JF008770
 
 ## Requirements
 [Conda](https://www.anaconda.com/docs/getting-started/miniconda/install)
@@ -61,7 +62,17 @@ from [Siegfried et al., 2016](https://doi.org/10.1002/2016GL067758)
 
 ## Citation
 If you use code from this repository, please cite both the publication and the code.
-
 If you use data from the linked [Zenodo](https://doi.org/10.5281/zenodo.15032116) repository, please cite both the publication and the data.
 
-###Publication Citation Forthcoming
+Publication
+>Katz, Z. S., Siegfried, M. R., & Padman, L. (2026). Slip-event timing and ice velocity vary at long-period ocean tidal frequencies at Whillans Ice Plain, West Antarctica. Journal of Geophysical Research: Earth Surface, 131, e2025JF008770. https://doi.org/10.1029/2025JF008770
+
+Data [RINEX For all stations except SLW1, WS04, and WS05]
+>Siegfried, M. R., Katz, Z. S., Fricker, H. A., Tulaczyk, S., & Oleszko, M. (2025). WISSARD-SALSA Whillans-Mercer GNSS Network [GPS/GNSS Observations (Aggregation of Multiple Datasets)]. The NSF GAGE Facility operated by EarthScope Consortium. https://doi.org/10.7283/YGE1-EF68
+
+Data [RINEX for SLW1, WSO4, WS05, Reprocessed Kinematic Positions for all Stations, Event Catalog]
+>Katz, Z. S., & Siegfried, M. R. (2025). Whillans Ice Plain GNSS RINEX, Kinematic Positions, and Stick-Slip Event Catalog (1.2) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.17797751
+
+Code
+>Katz, Z. S. (2025). zsk4/WhillansCatalogPaper: Revision2-1 (v1.2.1). Zenodo. https://doi.org/10.5281/zenodo.17958133
+
